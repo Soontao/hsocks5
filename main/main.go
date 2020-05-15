@@ -13,10 +13,10 @@ import (
 var Version = "SNAPSHOT"
 
 // AppName of this application
-var AppName = "Command Line Tool Util"
+var AppName = "HSocks5"
 
 // AppUsage of this application
-var AppUsage = "A Command Line Tool"
+var AppUsage = "provide HTTP Proxy with Socks5"
 
 func main() {
 	app := cli.NewApp()
