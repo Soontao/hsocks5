@@ -11,10 +11,10 @@ RUN go test -v -mod=vendor ./...
 RUN go build -mod=vendor -o main .
 
 # distribution image
-FROM alpine:3.11
+FROM alpine:3.9
 
 # add CAs
-RUN apk --no-cache add ca-certificates bash
+RUN apk --no-cache add ca-certificates
 
 WORKDIR /app
 COPY --from=build-env /app/main/main /app/app
