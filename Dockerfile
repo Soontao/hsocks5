@@ -1,9 +1,5 @@
 # build image
-FROM golang:1.14-alpine AS build-env
-
-# install build tools
-RUN apk update && apk upgrade && \
-    apk add --no-cache bash git openssh
+FROM golang:1.14 AS build-env
 
 # build
 WORKDIR /app
