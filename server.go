@@ -2,6 +2,7 @@ package hsocks5
 
 import (
 	"fmt"
+	"io"
 	"log"
 	"net"
 	"net/http"
@@ -152,7 +153,7 @@ func (s *ProxyServer) handleConnect(res http.ResponseWriter, req *http.Request) 
 
 }
 
-func (s *ProxyServer) handleRequest(res http.ResponseWriter, req *http.Request) {
+func (s *ProxyServer) handleRequest(w http.ResponseWriter, req *http.Request) {
 	host := req.Host // host & port
 	log.Printf("HTTP %v %v", req.Method, host)
 
@@ -169,19 +170,33 @@ func (s *ProxyServer) handleRequest(res http.ResponseWriter, req *http.Request) 
 
 	if err != nil {
 		log.Println(err)
-		res.WriteHeader(http.StatusInternalServerError)
-		res.Write([]byte(fmt.Sprintf("http agent error happened, %v", err)))
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte(fmt.Sprintf("http agent error happened, %v", err)))
 		return
 	}
 
-	result, err := client.Do(newReq)
+	proxyResponse, err := client.Do(newReq)
 
 	if err != nil {
+
 		log.Println(err)
-		res.WriteHeader(http.StatusInternalServerError)
-		res.Write([]byte(fmt.Sprintf("http agent error happened, %v", err)))
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte(fmt.Sprintf("http agent error happened, %v", err)))
+
 	} else {
-		result.Write(res)
+
+		for k, vs := range proxyResponse.Header {
+			for _, v := range vs {
+				w.Header().Set(k, v)
+			}
+		}
+
+		w.WriteHeader(proxyResponse.StatusCode)
+
+		defer proxyResponse.Body.Close()
+
+		io.Copy(w, proxyResponse.Body)
+
 	}
 
 }
