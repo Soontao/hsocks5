@@ -188,5 +188,6 @@ func (s *ProxyServer) handleRequest(res http.ResponseWriter, req *http.Request) 
 // Start server
 func (s *ProxyServer) Start(addr string) error {
 	hs := http.Server{Addr: addr, Handler: s}
+	log.Printf("start server at %v", addr)
 	return hs.ListenAndServe()
 }

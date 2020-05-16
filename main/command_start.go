@@ -15,7 +15,6 @@ var commandStart = cli.Command{
 		if err != nil {
 			return err
 		}
-		s.Start(addr)
-		return nil
+		return s.Start(addr)
 	},
 }

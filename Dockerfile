@@ -11,8 +11,7 @@ COPY . .
 WORKDIR /app/main
 RUN go build -mod=vendor -o main .
 
-# default env
-ENV PORT 18080
+
 
 # distribution image
 FROM alpine:3.11
@@ -22,6 +21,12 @@ RUN apk --no-cache add ca-certificates
 
 WORKDIR /app
 COPY --from=build-env /app/main/main /app/app
+
+# default env
+ENV ADDR "0.0.0.0:18080"
+
+# default EXPOSE 18080
+EXPOSE 18080
 
 # start
 CMD ["./app", "start"]
