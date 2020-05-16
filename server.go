@@ -164,6 +164,7 @@ func (s *ProxyServer) handleRequest(res http.ResponseWriter, req *http.Request) 
 		client = http.Client{Transport: &http.Transport{Dial: s.p.Dial}}
 	}
 
+	// create a new http request from original inbound request
 	newReq, err := http.NewRequest(req.Method, req.URL.String(), req.Body)
 
 	if err != nil {
