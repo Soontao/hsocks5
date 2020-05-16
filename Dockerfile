@@ -9,9 +9,10 @@ RUN apk update && apk upgrade && \
 WORKDIR /app
 COPY . .
 WORKDIR /app/main
+
+# run test & build, ensure binary is unit test passed
+RUN go test -v -mod=vendor ./...
 RUN go build -mod=vendor -o main .
-
-
 
 # distribution image
 FROM alpine:3.11
