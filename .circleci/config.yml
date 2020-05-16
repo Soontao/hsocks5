@@ -25,7 +25,7 @@ jobs:
           command: go test -v -mod=vendor ./...
       - run: 
           name: build multi platform excutable file
-          command: cd ./cli && VERSION=${CIRCLE_TAG} bash ./build.sh
+          command: cd ./main && VERSION=${CIRCLE_TAG} bash ./build.sh
       - persist_to_workspace:
           root: ./main
           paths: ./build
