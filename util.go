@@ -2,12 +2,9 @@ package hsocks5
 
 import (
 	"io"
-	"net"
 )
 
-func pipe(c1, c2 net.Conn, errChan chan error) {
-	_, err := io.Copy(c1, c2)
-	c1.Close()
-	c2.Close()
+func pipe(c1, c2 io.ReadWriter, errChan chan error) {
+	_, err := io.CopyBuffer(c1, c2, make([]byte, 32*1024))
 	errChan <- err
 }

@@ -17,23 +17,23 @@ import (
 
 // ProxyServer class
 type ProxyServer struct {
-	p             proxy.Dialer
 	m             *adblock.RuleMatcher
 	privateIPList *IPList
 	cnIPList      *IPList
 	c             *cache.Cache
+	socksAddr     string
 }
 
 // NewProxyServer object
 func NewProxyServer(socksProxyAddr string) (*ProxyServer, error) {
-	dialer, err := proxy.SOCKS5("tcp", socksProxyAddr, nil, proxy.Direct)
-	if err != nil {
-		return nil, err
-	}
 	c := cache.New(30*24*time.Hour, 1*time.Minute)
 	pIPList := LoadIPListFrom("assets/private_ip_list.txt")
 	cnIPList := LoadIPListFrom("assets/china_ip_list.txt")
-	return &ProxyServer{p: dialer, m: LoadGFWList(), privateIPList: pIPList, cnIPList: cnIPList, c: c}, nil
+	return &ProxyServer{m: LoadGFWList(), privateIPList: pIPList, cnIPList: cnIPList, c: c, socksAddr: socksProxyAddr}, nil
+}
+
+func (s *ProxyServer) createProxy() (proxy.Dialer, error) {
+	return proxy.SOCKS5("tcp", s.socksAddr, nil, proxy.Direct)
 }
 
 func (s *ProxyServer) ServeHTTP(res http.ResponseWriter, req *http.Request) {
@@ -63,7 +63,7 @@ func (s *ProxyServer) isDirectAccess(hostnameOrURI string) (rt bool) {
 
 	normalizeURI := hostnameOrURI
 
-	if strings.HasPrefix(normalizeURI, "http") {
+	if !strings.HasPrefix(normalizeURI, "http") {
 		normalizeURI = fmt.Sprintf("https://%v", normalizeURI) // gfwlist must have protocol
 	}
 
@@ -94,18 +94,18 @@ func (s *ProxyServer) isDirectAccess(hostnameOrURI string) (rt bool) {
 
 }
 
-func (s *ProxyServer) handleConnect(res http.ResponseWriter, req *http.Request) {
+func (s *ProxyServer) handleConnect(w http.ResponseWriter, req *http.Request) {
 
 	host := req.Host // host & port
 	hostname := req.URL.Hostname()
 
 	log.Printf("CONNECT %v", host)
 
-	hj, ok := res.(http.Hijacker)
+	hj, ok := w.(http.Hijacker)
 
 	if !ok {
-		res.WriteHeader(500)
-		res.Write([]byte("Proxt Server Internal Error"))
+		w.WriteHeader(500)
+		w.Write([]byte("Proxt Server Internal Error"))
 		return // error break
 	}
 
@@ -113,17 +113,22 @@ func (s *ProxyServer) handleConnect(res http.ResponseWriter, req *http.Request) 
 
 	if err != nil {
 		log.Println(err)
-		res.WriteHeader(500)
-		res.Write([]byte("Proxt Server Internal Error"))
+		w.WriteHeader(500)
+		w.Write([]byte("Proxt Server Internal Error"))
 		return // error break
 	}
+
+	defer conn.Close()
 
 	var remote net.Conn
 
 	if s.isDirectAccess(hostname) {
 		remote, err = net.Dial("tcp", host)
 	} else {
-		remote, err = s.p.Dial("tcp", host)
+		if dial, err := s.createProxy(); err == nil {
+			remote, err = dial.Dial("tcp", host)
+		}
+
 	}
 
 	if err != nil {
@@ -132,7 +137,9 @@ func (s *ProxyServer) handleConnect(res http.ResponseWriter, req *http.Request) 
 		return // error break
 	}
 
-	bufrw.WriteString("HTTP/1.1 200 OK\r\n\r\n") // connect accept
+	defer remote.Close()
+
+	bufrw.WriteString("HTTP/1.1 200 Connection established\r\n\r\n") // connect accept
 
 	if err := bufrw.Flush(); err != nil {
 		log.Println(err)
@@ -141,15 +148,15 @@ func (s *ProxyServer) handleConnect(res http.ResponseWriter, req *http.Request) 
 		return // error break
 	}
 
-	errChan := make(chan error, 2)
+	errChans := make(chan error, 2)
 
-	go pipe(conn, remote, errChan)
-	go pipe(remote, conn, errChan)
+	go pipe(remote, conn, errChans)
+	go pipe(conn, remote, errChans)
 
-	<-errChan // ignore error
-	<-errChan
+	<-errChans
+	<-errChans
 
-	// all connection closed
+	// all transfer finished
 
 }
 
@@ -162,11 +169,19 @@ func (s *ProxyServer) handleRequest(w http.ResponseWriter, req *http.Request) {
 	if s.isDirectAccess(req.URL.RequestURI()) {
 		client = http.Client{}
 	} else {
-		client = http.Client{Transport: &http.Transport{Dial: s.p.Dial}}
+		dialer, err := s.createProxy()
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			w.Write([]byte(fmt.Sprintf("http agent create failed, %v", err)))
+			return
+		}
+		client = http.Client{Transport: &http.Transport{Dial: dialer.Dial}}
 	}
 
 	// create a new http request from original inbound request
 	newReq, err := http.NewRequest(req.Method, req.URL.String(), req.Body)
+
+	newReq.Header = req.Header
 
 	if err != nil {
 		log.Println(err)
