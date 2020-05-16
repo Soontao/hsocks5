@@ -11,10 +11,12 @@ RUN go test -v -mod=vendor ./...
 RUN go build -mod=vendor -o main .
 
 # distribution image
-FROM alpine:3.9
+FROM alpine:3
 
 # add CAs
-RUN apk --no-cache add ca-certificates
+# add libc6-compat
+# https://stackoverflow.com/questions/34729748/installed-go-binary-not-found-in-path-on-alpine-linux-docker
+RUN apk --no-cache add ca-certificates libc6-compat
 
 WORKDIR /app
 COPY --from=build-env /app/main/main /app/app
