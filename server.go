@@ -30,8 +30,8 @@ func NewProxyServer(socksProxyAddr string) (*ProxyServer, error) {
 		return nil, err
 	}
 	c := cache.New(30*24*time.Hour, 1*time.Minute)
-	pIPList := LoadIPListFrom("/assets/private_ip_list.txt")
-	cnIPList := LoadIPListFrom("/assets/china_ip_list.txt")
+	pIPList := LoadIPListFrom("assets/private_ip_list.txt")
+	cnIPList := LoadIPListFrom("assets/china_ip_list.txt")
 	return &ProxyServer{p: dialer, m: LoadGFWList(), privateIPList: pIPList, cnIPList: cnIPList, c: c}, nil
 }
 

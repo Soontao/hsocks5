@@ -10,8 +10,6 @@ github.com/davecgh/go-spew/spew
 ## explicit
 # github.com/gobuffalo/envy v1.9.0
 ## explicit
-# github.com/gobuffalo/here v0.6.0
-github.com/gobuffalo/here
 # github.com/gobuffalo/packr v1.30.1
 ## explicit
 # github.com/gobuffalo/packr/v2 v2.8.0
@@ -20,11 +18,6 @@ github.com/gobuffalo/here
 ## explicit
 # github.com/markbates/pkger v0.16.0
 ## explicit
-github.com/markbates/pkger
-github.com/markbates/pkger/here
-github.com/markbates/pkger/internal/maps
-github.com/markbates/pkger/pkging
-github.com/markbates/pkger/pkging/stdos
 # github.com/mjibson/esc v0.2.0
 ## explicit
 # github.com/patrickmn/go-cache v2.1.0+incompatible

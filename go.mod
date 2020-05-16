@@ -10,7 +10,7 @@ require (
 	github.com/gobuffalo/packr v1.30.1 // indirect
 	github.com/gobuffalo/packr/v2 v2.8.0 // indirect
 	github.com/karrick/godirwalk v1.15.6 // indirect
-	github.com/markbates/pkger v0.16.0
+	github.com/markbates/pkger v0.16.0 // indirect
 	github.com/mjibson/esc v0.2.0 // indirect
 	github.com/patrickmn/go-cache v2.1.0+incompatible
 	github.com/pkg/errors v0.9.1 // indirect
