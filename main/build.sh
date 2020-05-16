@@ -2,7 +2,7 @@
 
 # cli file name
 # change this please
-OUTPUT_FILENAME="cli"
+OUTPUT_FILENAME="hsocks5"
 
 # platforms
 PLATFORMS="darwin/amd64"
