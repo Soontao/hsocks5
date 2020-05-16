@@ -21,7 +21,7 @@ FROM alpine:3.11
 RUN apk --no-cache add ca-certificates
 
 WORKDIR /app
-COPY --from=build-env /app/app/main /app/app
+COPY --from=build-env /app/main/main /app/app
 
 # start
 CMD ["./app", "start"]
