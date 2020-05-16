@@ -3,7 +3,6 @@ module github.com/Soontao/hsocks5
 go 1.14
 
 require (
-	github.com/allegro/bigcache v1.2.1 // indirect
 	github.com/markbates/pkger v0.16.0
 	github.com/patrickmn/go-cache v2.1.0+incompatible
 	github.com/pmezard/adblock v0.0.0-20171028110701-edfb97ad89cd
