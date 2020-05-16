@@ -14,7 +14,7 @@ RUN go build -mod=vendor -o main .
 FROM alpine:3.11
 
 # add CAs
-RUN apk --no-cache add ca-certificates
+RUN apk --no-cache add ca-certificates bash
 
 WORKDIR /app
 COPY --from=build-env /app/main/main /app/app
