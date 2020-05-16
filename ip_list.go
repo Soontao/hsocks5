@@ -1,11 +1,8 @@
 package hsocks5
 
 import (
-	"io/ioutil"
 	"net"
 	"strings"
-
-	"github.com/markbates/pkger"
 )
 
 // IPList type
@@ -15,8 +12,7 @@ type IPList struct {
 
 // LoadIPListFrom assets
 func LoadIPListFrom(path string) *IPList {
-	f, _ := pkger.Open(path)
-	l, _ := ioutil.ReadAll(f)
+	l, _ := Asset(path)
 	return NewIPList(string(l))
 }
 
