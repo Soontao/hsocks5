@@ -3,15 +3,15 @@ package main
 import "github.com/urfave/cli"
 
 var options = []cli.Flag{
-	&cli.Int64Flag{
-		Name:   "port, p",
-		EnvVar: "PORT",
-		Usage:  "HTTP proxy port",
-		Value:  18080,
+	&cli.StringFlag{
+		Name:   "addr, a",
+		EnvVar: "ADDR",
+		Usage:  "HTTP proxy listen address",
+		Value:  ":18080",
 	},
 	&cli.StringFlag{
 		Name:   "socks, s",
 		EnvVar: "SOCKS",
-		Usage:  "Socks5 service url",
+		Usage:  "Socks5 service url, format: hostname:port, 192.168.1.1:18080",
 	},
 }

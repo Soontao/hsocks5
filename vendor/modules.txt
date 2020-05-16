@@ -1,11 +1,33 @@
+# github.com/allegro/bigcache v1.2.1
+## explicit
 # github.com/cpuguy83/go-md2man/v2 v2.0.0-20190314233015-f79a8a8ca69d
 github.com/cpuguy83/go-md2man/v2/md2man
-# github.com/elazarl/goproxy v0.0.0-20200426045556-49ad98f6dac1
+# github.com/davecgh/go-spew v1.1.1
+github.com/davecgh/go-spew/spew
+# github.com/gobuffalo/here v0.6.0
+github.com/gobuffalo/here
+# github.com/markbates/pkger v0.16.0
 ## explicit
+github.com/markbates/pkger
+github.com/markbates/pkger/here
+github.com/markbates/pkger/internal/maps
+github.com/markbates/pkger/pkging
+github.com/markbates/pkger/pkging/stdos
+# github.com/patrickmn/go-cache v2.1.0+incompatible
+## explicit
+github.com/patrickmn/go-cache
+# github.com/pmezard/adblock v0.0.0-20171028110701-edfb97ad89cd
+## explicit
+github.com/pmezard/adblock/adblock
+# github.com/pmezard/go-difflib v1.0.0
+github.com/pmezard/go-difflib/difflib
 # github.com/russross/blackfriday/v2 v2.0.1
 github.com/russross/blackfriday/v2
 # github.com/shurcooL/sanitized_anchor_name v1.0.0
 github.com/shurcooL/sanitized_anchor_name
+# github.com/stretchr/testify v1.5.1
+## explicit
+github.com/stretchr/testify/assert
 # github.com/urfave/cli v1.22.4
 ## explicit
 github.com/urfave/cli
@@ -13,3 +35,5 @@ github.com/urfave/cli
 ## explicit
 golang.org/x/net/internal/socks
 golang.org/x/net/proxy
+# gopkg.in/yaml.v2 v2.2.7
+gopkg.in/yaml.v2

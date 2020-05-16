@@ -2,7 +2,6 @@
   "go.formatTool": "goimports",
   "cSpell.enabled": false,
   "editor.wordWrap": "on",
-  "go.useLanguageServer": true,
   "[go]": {
     "editor.snippetSuggestions": "none",
     "editor.formatOnSave": true,

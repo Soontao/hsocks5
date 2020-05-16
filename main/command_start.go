@@ -1,8 +1,7 @@
 package main
 
 import (
-	"log"
-
+	"github.com/Soontao/hsocks5"
 	"github.com/urfave/cli"
 )
 
@@ -10,7 +9,13 @@ var commandStart = cli.Command{
 	Name:  "start",
 	Usage: "program entry",
 	Action: func(c *cli.Context) error {
-		log.Println("hello golang.")
+		addr := c.GlobalString("addr")
+		socks := c.GlobalString("socks")
+		s, err := hsocks5.NewProxyServer(socks)
+		if err != nil {
+			return err
+		}
+		s.Start(addr)
 		return nil
 	},
 }

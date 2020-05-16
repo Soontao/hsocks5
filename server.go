@@ -1,17 +1,26 @@
 package hsocks5
 
 import (
-	"io"
+	"fmt"
 	"log"
 	"net"
 	"net/http"
+	"net/url"
+	"strings"
+	"time"
 
+	"github.com/patrickmn/go-cache"
+	"github.com/pmezard/adblock/adblock"
 	"golang.org/x/net/proxy"
 )
 
 // ProxyServer class
 type ProxyServer struct {
-	p proxy.Dialer
+	p             proxy.Dialer
+	m             *adblock.RuleMatcher
+	privateIPList *IPList
+	cnIPList      *IPList
+	c             *cache.Cache
 }
 
 // NewProxyServer object
@@ -20,72 +29,158 @@ func NewProxyServer(socksProxyAddr string) (*ProxyServer, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &ProxyServer{p: dialer}, nil
-}
-
-func pipe(c1, c2 net.Conn, errChan chan error) {
-	_, err := io.Copy(c1, c2)
-	if err != nil {
-		log.Println(err)
-	} else {
-		log.Printf("Connection End")
-	}
-	c1.Close()
-	c2.Close()
-	errChan <- err
+	c := cache.New(30*24*time.Hour, 1*time.Minute)
+	pIPList := LoadIPListFrom("/assets/private_ip_list.txt")
+	cnIPList := LoadIPListFrom("/assets/china_ip_list.txt")
+	return &ProxyServer{p: dialer, m: LoadGFWList(), privateIPList: pIPList, cnIPList: cnIPList, c: c}, nil
 }
 
 func (s *ProxyServer) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 
 	if req.Method == "CONNECT" {
-		hj, ok := res.(http.Hijacker)
 
-		if !ok {
-			res.WriteHeader(500)
-			res.Write([]byte("Proxt Server Internal Error"))
-			return // error break
-		}
+		s.handleConnect(res, req)
 
-		conn, bufrw, err := hj.Hijack()
+	} else {
 
-		if err != nil {
-			log.Println(err)
-			res.WriteHeader(500)
-			res.Write([]byte("Proxt Server Internal Error"))
-			return // error break
-		}
+		s.handleRequest(res, req)
 
-		proxyConn, err := s.p.Dial("tcp", req.Host)
-		if err != nil {
-			log.Println(err)
-			conn.Close()
-			return // error break
-		}
+	}
 
-		bufrw.WriteString("HTTP/1.1 200 OK\r\n\r\n") // connect accept
+}
 
-		if err := bufrw.Flush(); err != nil {
-			log.Println(err)
-			proxyConn.Close()
-			conn.Close()
-			return // error break
-		}
+// isInGFWList url
+func (s *ProxyServer) isInGFWList(url string) bool {
 
-		errChan := make(chan error, 2)
+	b, _, _ := s.m.Match(&adblock.Request{URL: url})
+	return b
+}
 
-		go pipe(conn, proxyConn, errChan)
-		go pipe(proxyConn, conn, errChan)
+// isDirectAccess the target
+func (s *ProxyServer) isDirectAccess(hostnameOrURI string) (rt bool) {
+	rt = true
 
-		e1, e2 := <-errChan, <-errChan
+	normalizeURI := hostnameOrURI
 
-		if e1 != nil {
-			log.Println(e1)
-		}
+	if strings.HasPrefix(normalizeURI, "http") {
+		normalizeURI = fmt.Sprintf("https://%v", normalizeURI) // gfwlist must have protocol
+	}
 
-		if e2 != nil {
-			log.Println(e2)
-		}
+	url, err := url.Parse(normalizeURI)
 
+	hostname := url.Hostname()
+
+	if cachedValue, exist := s.c.Get(hostname); exist {
+		return cachedValue.(bool)
+	}
+
+	if err != nil {
+		log.Printf("parse url '%v' failed.", normalizeURI)
+		return
+	}
+
+	if s.privateIPList.Contains(hostname) {
+		rt = true // internal network
+	} else if s.isInGFWList(normalizeURI) {
+		rt = false // banned by gfw
+	} else if !s.cnIPList.Contains(hostname) {
+		rt = false // service server is not located in china
+	}
+
+	s.c.SetDefault(hostname, rt)
+
+	return
+
+}
+
+func (s *ProxyServer) handleConnect(res http.ResponseWriter, req *http.Request) {
+
+	host := req.Host // host & port
+	hostname := req.URL.Hostname()
+
+	log.Printf("CONNECT %v", host)
+
+	hj, ok := res.(http.Hijacker)
+
+	if !ok {
+		res.WriteHeader(500)
+		res.Write([]byte("Proxt Server Internal Error"))
+		return // error break
+	}
+
+	conn, bufrw, err := hj.Hijack()
+
+	if err != nil {
+		log.Println(err)
+		res.WriteHeader(500)
+		res.Write([]byte("Proxt Server Internal Error"))
+		return // error break
+	}
+
+	var remote net.Conn
+
+	if s.isDirectAccess(hostname) {
+		remote, err = net.Dial("tcp", host)
+	} else {
+		remote, err = s.p.Dial("tcp", host)
+	}
+
+	if err != nil {
+		log.Println(err)
+		conn.Close()
+		return // error break
+	}
+
+	bufrw.WriteString("HTTP/1.1 200 OK\r\n\r\n") // connect accept
+
+	if err := bufrw.Flush(); err != nil {
+		log.Println(err)
+		remote.Close()
+		conn.Close()
+		return // error break
+	}
+
+	errChan := make(chan error, 2)
+
+	go pipe(conn, remote, errChan)
+	go pipe(remote, conn, errChan)
+
+	<-errChan // ignore error
+	<-errChan
+
+	// all connection closed
+
+}
+
+func (s *ProxyServer) handleRequest(res http.ResponseWriter, req *http.Request) {
+	host := req.Host // host & port
+	log.Printf("HTTP %v %v", req.Method, host)
+
+	var client http.Client
+
+	if s.isDirectAccess(req.URL.RequestURI()) {
+		client = http.Client{}
+	} else {
+		client = http.Client{Transport: &http.Transport{Dial: s.p.Dial}}
+	}
+
+	newReq, err := http.NewRequest(req.Method, req.URL.String(), req.Body)
+
+	if err != nil {
+		log.Println(err)
+		res.WriteHeader(http.StatusInternalServerError)
+		res.Write([]byte(fmt.Sprintf("http agent error happened, %v", err)))
+		return
+	}
+
+	result, err := client.Do(newReq)
+
+	if err != nil {
+		log.Println(err)
+		res.WriteHeader(http.StatusInternalServerError)
+		res.Write([]byte(fmt.Sprintf("http agent error happened, %v", err)))
+	} else {
+		result.Write(res)
 	}
 
 }
