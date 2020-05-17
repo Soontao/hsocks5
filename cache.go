@@ -15,6 +15,7 @@ type KVCache struct {
 	memCache *cache.Cache
 	Set      func(string, string)
 	Get      func(string) (string, bool)
+	MustGet  func(string) string
 }
 
 // NewKVCache instance
@@ -39,6 +40,13 @@ func NewKVCache(redisAddr ...string) (rt *KVCache) {
 				v, err := rt.rClient.Get(k).Result()
 				return v, err != redis.Nil
 			}
+			rt.MustGet = func(k string) string {
+				if r, exist := rt.Get(k); exist {
+					return r
+				} else {
+					return ""
+				}
+			}
 		}
 
 	}
@@ -56,6 +64,10 @@ func NewKVCache(redisAddr ...string) (rt *KVCache) {
 				return "", e
 			}
 			return v.(string), e
+		}
+		rt.MustGet = func(k string) (r string) {
+			r, _ = rt.Get(k)
+			return
 		}
 
 	}

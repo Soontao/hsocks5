@@ -3,6 +3,7 @@ module github.com/Soontao/hsocks5
 go 1.14
 
 require (
+	github.com/alicebob/miniredis/v2 v2.11.4
 	github.com/cpuguy83/go-md2man/v2 v2.0.0 // indirect
 	github.com/go-redis/redis v6.15.7+incompatible
 	github.com/onsi/ginkgo v1.10.1 // indirect

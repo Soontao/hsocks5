@@ -56,29 +56,30 @@ func (s *ProxyServer) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 
 		s.handleConnect(res, req)
 
-	} else {
-
-		if req.RequestURI == "/hsocks5/__/metric" {
-			s.prom.ServeHTTP(res, req)
-			return
-		}
-
-		if req.RequestURI == "/favicon.ico" {
-			res.WriteHeader(http.StatusNotFound)
-			return
-		}
-
-		s.metric.connTotal.WithLabelValues("REQUEST").Inc()
-
-		s.handleRequest(res, req)
+		return
 
 	}
+
+	// handle direct http request
+	if len(req.URL.Host) == 0 {
+
+		s.handleRequest(res, req)
+		return
+
+	}
+
+	// handle proxy http request
+
+	s.metric.connTotal.WithLabelValues("REQUEST").Inc()
+
+	s.handleProxyRequest(res, req)
+
+	return
 
 }
 
 // isInGFWList url
 func (s *ProxyServer) isInGFWList(url string) bool {
-
 	b, _, _ := s.m.Match(&adblock.Request{URL: url})
 	return b
 }
@@ -201,6 +202,19 @@ func (s *ProxyServer) handleConnect(w http.ResponseWriter, req *http.Request) {
 }
 
 func (s *ProxyServer) handleRequest(w http.ResponseWriter, req *http.Request) {
+	// >> Prometheus
+	if req.RequestURI == "/hsocks5/__/metric" {
+		s.prom.ServeHTTP(w, req)
+		return
+	}
+	// << Prometheus
+
+	// default 404 not exist
+	w.WriteHeader(http.StatusNotFound)
+	return
+}
+
+func (s *ProxyServer) handleProxyRequest(w http.ResponseWriter, req *http.Request) {
 	host := req.Host // host & port
 	log.Printf("HTTP %v %v", req.Method, host)
 
@@ -228,9 +242,7 @@ func (s *ProxyServer) handleRequest(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	proxyResponse, err := client.Do(newReq)
-
-	s.metric.requestStatusTotal.WithLabelValues(newReq.URL.Hostname(), string(proxyResponse.StatusCode)).Inc()
+	proxyResponse, err := client.Do(newReq) // if err happened, dont access proxyResponse
 
 	if err != nil {
 
@@ -239,20 +251,24 @@ func (s *ProxyServer) handleRequest(w http.ResponseWriter, req *http.Request) {
 
 	} else {
 
+		s.metric.requestStatusTotal.WithLabelValues(newReq.URL.Hostname(), string(proxyResponse.StatusCode)).Inc()
 		s.pipeResponse(proxyResponse, w)
 
 	}
 
 }
 
+// sendError alias
 func (s *ProxyServer) sendError(w http.ResponseWriter, err error) {
 	w.WriteHeader(http.StatusInternalServerError)
-	w.Write([]byte(fmt.Sprintf("http agent error happened, %v", err)))
+	w.Write([]byte(fmt.Sprintf("http proxy internal error happened, %v", err)))
 }
 
+// pipeResponse for http request
 func (s *ProxyServer) pipeResponse(from *http.Response, to http.ResponseWriter) {
+	h := to.Header()
+
 	for k, vs := range from.Header {
-		h := to.Header()
 		for _, v := range vs {
 			h.Set(k, v)
 		}
