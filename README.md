@@ -10,9 +10,26 @@ Provide HTTP Proxy based on Socks5 Proxy.
 
 This project is the `golang` version of the tool [http-proxy-to-socks](https://github.com/Soontao/http-proxy-to-socks), and much faster processing & less memory taking than it.
 
-## Setup
 
-just run this tool with `docker`
+## Why? 
+
+Must `operation systems` (like `windows`, `android` & `iOS`) only support `HTTP Proxy` without other tools, but generally we need use a `SOCKS5` proxy with some route rules, this project make its possible, proxy HTTP Proxy over SOCKS5 Proxy, and with some predefined route rules.
+
+With this tool, just setup your socks5 proxy & `hsocks5`, your devices can access socks5 proxy without any other application installation.
+
+## Setup with binary
+
+Download released binaries from [here](https://github.com/Soontao/hsocks5/releases). (you should download the correct binary for your platform)
+
+And run with 
+
+```bash
+./hsocks5 --socks 192.168.3.88:10080 start
+```
+
+## Setup with docker
+
+Run this tool with `docker`
 
 ```bash
 docker run --restart=always -d -p 18080:18080 -e SOCKS=192.168.3.88:10080 --name hsocks5 thedockerimages/hsocks5:latest
@@ -22,6 +39,31 @@ The `192.168.3.88:10080` is the socks5 server host and port.
 
 The `18080` is the http proxy default port, you can use docker expose it as another port.
 
-## Prometheus Metric 
+## Options
+
+```bash
+./hsocks5 --help
+
+NAME:
+   HSocks5 - provide HTTP Proxy with Socks5
+
+USAGE:
+   hsocks5 [global options] command [command options] [arguments...]
+
+VERSION:
+   SNAPSHOT
+
+COMMANDS:
+   start    program entry
+   help, h  Shows a list of commands or help for one command
+
+GLOBAL OPTIONS:
+   --addr value, -a value   HTTP proxy listen address (default: ":18080") [%ADDR%]
+   --socks value, -s value  Socks5 service url, format: hostname:port, 192.168.1.1:18080 [%SOCKS%]
+   --help, -h               show help
+   --version, -v            print the version
+```
+
+## Prometheus metric 
 
 `HSocks5` exposes prometheus metric endpoint at `/hsocks5/__/metric`

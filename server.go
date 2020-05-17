@@ -230,7 +230,7 @@ func (s *ProxyServer) handleRequest(w http.ResponseWriter, req *http.Request) {
 
 	proxyResponse, err := client.Do(newReq)
 
-	s.metric.requestStatusTotal.WithLabelValues(newReq.URL.Hostname(), proxyResponse.Status).Inc()
+	s.metric.requestStatusTotal.WithLabelValues(newReq.URL.Hostname(), string(proxyResponse.StatusCode)).Inc()
 
 	if err != nil {
 
