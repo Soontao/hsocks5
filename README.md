@@ -15,7 +15,7 @@ This project is the `golang` version of the tool [http-proxy-to-socks](https://g
 
 Must `operation systems` (like `windows`, `android` & `iOS`) only support `HTTP Proxy` without other tools, but generally we need use a `SOCKS5` proxy with some route rules, this project make its possible, proxy HTTP Proxy over SOCKS5 Proxy, and with some predefined route rules.
 
-With this tool, just setup your socks5 proxy & `hsocks5`, your devices can access socks5 proxy without any other application installation.
+With this tool, just setup your socks5 proxy & `hsocks5`, then your devices can access socks5 proxy without any other application installation.
 
 ## Setup with binary
 
