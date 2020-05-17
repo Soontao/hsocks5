@@ -1,4 +1,23 @@
 
+<a name="v0.0.3"></a>
+## [v0.0.3](https://github.com/Soontao/hsocks5/compare/v0.0.2...v0.0.3) (2020-05-17)
+
+### Code Refactoring
+
+* improvement & unit tests
+
+### Common
+
+* doc update
+* doc update
+* doc update
+* **release:** new version
+
+### Features
+
+* redis support
+
+
 <a name="v0.0.2"></a>
 ## [v0.0.2](https://github.com/Soontao/hsocks5/compare/v0.0.1...v0.0.2) (2020-05-17)
 
