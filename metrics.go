@@ -6,7 +6,6 @@ import "github.com/prometheus/client_golang/prometheus"
 type ProxyServerMetrics struct {
 	connTotal          *prometheus.CounterVec
 	requestStatusTotal *prometheus.CounterVec
-	connectStatustotal *prometheus.CounterVec
 	cacheHitTotal      *prometheus.CounterVec
 	routineResultTotal *prometheus.CounterVec
 }
