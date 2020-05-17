@@ -65,4 +65,6 @@ GLOBAL OPTIONS:
 
 `HSocks5` exposes prometheus metric endpoint at `/hsocks5/__/metric`
 
+![](https://res.cloudinary.com/digf90pwi/image/upload/q_52/v1589713044/517185713_qfe21u.png)
+
 ## [CHANGELOG](./CHANGELOG.md)
