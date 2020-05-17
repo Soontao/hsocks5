@@ -8,7 +8,7 @@
 
 Provide HTTP Proxy based on Socks5 Proxy. 
 
-This project is the `golang` version of the tool [http-proxy-to-socks](https://github.com/Soontao/http-proxy-to-socks), and much faster processing & less memory taking than it.
+This project is the `golang` version of the tool [http-proxy-to-socks](https://github.com/Soontao/http-proxy-to-socks), with much faster processing & less memory taking.
 
 
 ## Why? 
