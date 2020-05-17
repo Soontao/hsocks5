@@ -7,29 +7,44 @@ import (
 	"net"
 	"net/http"
 	"net/url"
+	"strconv"
 	"strings"
 	"time"
 
 	"github.com/patrickmn/go-cache"
 	"github.com/pmezard/adblock/adblock"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"golang.org/x/net/proxy"
 )
 
 // ProxyServer class
 type ProxyServer struct {
-	m             *adblock.RuleMatcher
-	privateIPList *IPList
-	cnIPList      *IPList
-	c             *cache.Cache
-	socksAddr     string
+	m         *adblock.RuleMatcher
+	priIPList *IPList
+	cnIPList  *IPList
+	c         *cache.Cache
+	prom      http.Handler
+	socksAddr string
+	metric    *ProxyServerMetrics
 }
 
 // NewProxyServer object
-func NewProxyServer(socksProxyAddr string) (*ProxyServer, error) {
+func NewProxyServer(socksAddr string) (*ProxyServer, error) {
 	c := cache.New(30*24*time.Hour, 1*time.Minute)
 	pIPList := LoadIPListFrom("assets/private_ip_list.txt")
 	cnIPList := LoadIPListFrom("assets/china_ip_list.txt")
-	return &ProxyServer{m: LoadGFWList(), privateIPList: pIPList, cnIPList: cnIPList, c: c, socksAddr: socksProxyAddr}, nil
+	prom := promhttp.Handler()
+
+	return &ProxyServer{
+		m:         LoadGFWList(),
+		priIPList: pIPList,
+		cnIPList:  cnIPList,
+		c:         c,
+		socksAddr: socksAddr,
+		prom:      prom,
+		metric:    NewProxyServerMetrics(),
+	}, nil
+
 }
 
 func (s *ProxyServer) createProxy() (proxy.Dialer, error) {
@@ -40,9 +55,23 @@ func (s *ProxyServer) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 
 	if req.Method == "CONNECT" {
 
+		s.metric.connTotal.WithLabelValues("CONNECT").Inc()
+
 		s.handleConnect(res, req)
 
 	} else {
+
+		if req.RequestURI == "/hsocks5/__/metric" {
+			s.prom.ServeHTTP(res, req)
+			return
+		}
+
+		if req.RequestURI == "/favicon.ico" {
+			res.WriteHeader(http.StatusNotFound)
+			return
+		}
+
+		s.metric.connTotal.WithLabelValues("REQUEST").Inc()
 
 		s.handleRequest(res, req)
 
@@ -59,6 +88,11 @@ func (s *ProxyServer) isInGFWList(url string) bool {
 
 // isDirectAccess the target
 func (s *ProxyServer) isDirectAccess(hostnameOrURI string) (rt bool) {
+
+	s.metric.cacheHitTotal.WithLabelValues("check").Inc()
+
+	routineType := "FALLBACK"
+
 	rt = true
 
 	normalizeURI := hostnameOrURI
@@ -71,7 +105,12 @@ func (s *ProxyServer) isDirectAccess(hostnameOrURI string) (rt bool) {
 
 	hostname := url.Hostname()
 
-	if cachedValue, exist := s.c.Get(hostname); exist {
+	defer func() {
+		s.metric.routineResultTotal.WithLabelValues(hostname, strconv.FormatBool(rt), routineType).Inc()
+	}()
+
+	if cachedValue, exist := s.c.Get(hostname); exist { // use hostname as cache key
+		s.metric.cacheHitTotal.WithLabelValues("with_cache").Inc()
 		return cachedValue.(bool)
 	}
 
@@ -80,11 +119,14 @@ func (s *ProxyServer) isDirectAccess(hostnameOrURI string) (rt bool) {
 		return
 	}
 
-	if s.privateIPList.Contains(hostname) {
+	if s.priIPList.Contains(hostname) {
+		routineType = "IN_PRIVATE_NETWORK"
 		rt = true // internal network
 	} else if s.isInGFWList(normalizeURI) {
+		routineType = "IN_GFW_LIST"
 		rt = false // banned by gfw
 	} else if !s.cnIPList.Contains(hostname) {
+		routineType = "NOT_IN_CN_IP_LIST"
 		rt = false // service server is not located in china
 	}
 
@@ -104,17 +146,15 @@ func (s *ProxyServer) handleConnect(w http.ResponseWriter, req *http.Request) {
 	hj, ok := w.(http.Hijacker)
 
 	if !ok {
-		w.WriteHeader(500)
-		w.Write([]byte("Proxt Server Internal Error"))
+		s.sendError(w, fmt.Errorf("Proxt Server Internal Error"))
 		return // error break
 	}
 
-	conn, bufrw, err := hj.Hijack()
+	conn, bufrw, err := hj.Hijack() // get TCp connection
 
 	if err != nil {
 		log.Println(err)
-		w.WriteHeader(500)
-		w.Write([]byte("Proxt Server Internal Error"))
+		s.sendError(w, err)
 		return // error break
 	}
 
@@ -166,13 +206,12 @@ func (s *ProxyServer) handleRequest(w http.ResponseWriter, req *http.Request) {
 
 	var client http.Client
 
-	if s.isDirectAccess(req.URL.RequestURI()) {
+	if s.isDirectAccess(req.RequestURI) {
 		client = http.Client{}
 	} else {
 		dialer, err := s.createProxy()
 		if err != nil {
-			w.WriteHeader(http.StatusInternalServerError)
-			w.Write([]byte(fmt.Sprintf("http agent create failed, %v", err)))
+			s.sendError(w, err)
 			return
 		}
 		client = http.Client{Transport: &http.Transport{Dial: dialer.Dial}}
@@ -181,39 +220,49 @@ func (s *ProxyServer) handleRequest(w http.ResponseWriter, req *http.Request) {
 	// create a new http request from original inbound request
 	newReq, err := http.NewRequest(req.Method, req.URL.String(), req.Body)
 
-	newReq.Header = req.Header
+	newReq.Header = req.Header.Clone()
 
 	if err != nil {
 		log.Println(err)
-		w.WriteHeader(http.StatusInternalServerError)
-		w.Write([]byte(fmt.Sprintf("http agent error happened, %v", err)))
+		s.sendError(w, err)
 		return
 	}
 
 	proxyResponse, err := client.Do(newReq)
 
+	s.metric.requestStatusTotal.WithLabelValues(newReq.URL.Hostname(), proxyResponse.Status).Inc()
+
 	if err != nil {
 
 		log.Println(err)
-		w.WriteHeader(http.StatusInternalServerError)
-		w.Write([]byte(fmt.Sprintf("http agent error happened, %v", err)))
+		s.sendError(w, err)
 
 	} else {
 
-		for k, vs := range proxyResponse.Header {
-			for _, v := range vs {
-				w.Header().Set(k, v)
-			}
-		}
-
-		w.WriteHeader(proxyResponse.StatusCode)
-
-		defer proxyResponse.Body.Close()
-
-		io.Copy(w, proxyResponse.Body)
+		s.pipeResponse(proxyResponse, w)
 
 	}
 
+}
+
+func (s *ProxyServer) sendError(w http.ResponseWriter, err error) {
+	w.WriteHeader(http.StatusInternalServerError)
+	w.Write([]byte(fmt.Sprintf("http agent error happened, %v", err)))
+}
+
+func (s *ProxyServer) pipeResponse(from *http.Response, to http.ResponseWriter) {
+	for k, vs := range from.Header {
+		h := to.Header()
+		for _, v := range vs {
+			h.Set(k, v)
+		}
+	}
+
+	to.WriteHeader(from.StatusCode)
+
+	defer from.Body.Close()
+
+	io.Copy(to, from.Body)
 }
 
 // Start server
