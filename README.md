@@ -10,12 +10,9 @@ Provide HTTP Proxy based on Socks5 Proxy.
 
 This project is the `golang` version of the tool [http-proxy-to-socks](https://github.com/Soontao/http-proxy-to-socks), with much faster processing & less memory taking.
 
-
 ## Why? 
 
-Must `operation systems` (like `windows`, `android` & `iOS`) only support `HTTP Proxy` without other tools, but generally we need use a `SOCKS5` proxy with some route rules, this project make its possible, proxy HTTP Proxy over SOCKS5 Proxy, and with some predefined route rules.
-
-With this tool, just setup your socks5 proxy & `hsocks5`, then your devices can access socks5 proxy without any other application installation.
+Most `operation systems` (like `windows`, `android` & `iOS`) only support `HTTP Proxy` without other tools, if users want to use a `socks5` proxy, users must install some app on device, but sometimes there are some limitation on the devices. This project can `transform` `socks5` proxy into `http` proxy, so that make all devices can connect with the `socks5` proxy.
 
 ## Setup with binary
 
@@ -67,3 +64,5 @@ GLOBAL OPTIONS:
 ## Prometheus metric 
 
 `HSocks5` exposes prometheus metric endpoint at `/hsocks5/__/metric`
+
+## [CHANGELOG](./CHANGELOG.md)

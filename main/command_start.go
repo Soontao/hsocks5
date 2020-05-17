@@ -11,7 +11,7 @@ var commandStart = cli.Command{
 	Action: func(c *cli.Context) error {
 		addr := c.GlobalString("addr")
 		socks := c.GlobalString("socks")
-		s, err := hsocks5.NewProxyServer(socks)
+		s, err := hsocks5.NewProxyServer(socks, c.GlobalString("redis"))
 		if err != nil {
 			return err
 		}

@@ -9,9 +9,7 @@ import (
 	"net/url"
 	"strconv"
 	"strings"
-	"time"
 
-	"github.com/patrickmn/go-cache"
 	"github.com/pmezard/adblock/adblock"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"golang.org/x/net/proxy"
@@ -22,24 +20,23 @@ type ProxyServer struct {
 	m         *adblock.RuleMatcher
 	priIPList *IPList
 	cnIPList  *IPList
-	c         *cache.Cache
+	kvCache   *KVCache
 	prom      http.Handler
 	socksAddr string
 	metric    *ProxyServerMetrics
 }
 
 // NewProxyServer object
-func NewProxyServer(socksAddr string) (*ProxyServer, error) {
-	c := cache.New(30*24*time.Hour, 1*time.Minute)
+func NewProxyServer(socksAddr string, cacheConfig ...string) (*ProxyServer, error) {
 	pIPList := LoadIPListFrom("assets/private_ip_list.txt")
 	cnIPList := LoadIPListFrom("assets/china_ip_list.txt")
 	prom := promhttp.Handler()
 
 	return &ProxyServer{
+		kvCache:   NewKVCache(cacheConfig...),
 		m:         LoadGFWList(),
 		priIPList: pIPList,
 		cnIPList:  cnIPList,
-		c:         c,
 		socksAddr: socksAddr,
 		prom:      prom,
 		metric:    NewProxyServerMetrics(),
@@ -91,7 +88,7 @@ func (s *ProxyServer) isDirectAccess(hostnameOrURI string) (rt bool) {
 
 	s.metric.cacheHitTotal.WithLabelValues("check").Inc()
 
-	routineType := "FALLBACK"
+	reason := "FALLBACK"
 
 	rt = true
 
@@ -106,12 +103,15 @@ func (s *ProxyServer) isDirectAccess(hostnameOrURI string) (rt bool) {
 	hostname := url.Hostname()
 
 	defer func() {
-		s.metric.routineResultTotal.WithLabelValues(hostname, strconv.FormatBool(rt), routineType).Inc()
+		s.metric.routineResultTotal.WithLabelValues(hostname, strconv.FormatBool(rt), reason).Inc()
 	}()
 
-	if cachedValue, exist := s.c.Get(hostname); exist { // use hostname as cache key
+	if cachedValue, exist := s.kvCache.Get(hostname); exist { // use hostname as cache key
 		s.metric.cacheHitTotal.WithLabelValues("with_cache").Inc()
-		return cachedValue.(bool)
+		if rt, err = strconv.ParseBool(cachedValue); err != nil {
+			log.Printf("parse bool failed for '%v', please check your cahce", hostnameOrURI)
+		}
+		return
 	}
 
 	if err != nil {
@@ -120,17 +120,17 @@ func (s *ProxyServer) isDirectAccess(hostnameOrURI string) (rt bool) {
 	}
 
 	if s.priIPList.Contains(hostname) {
-		routineType = "IN_PRIVATE_NETWORK"
+		reason = "IN_PRIVATE_NETWORK"
 		rt = true // internal network
 	} else if s.isInGFWList(normalizeURI) {
-		routineType = "IN_GFW_LIST"
+		reason = "IN_GFW_LIST"
 		rt = false // banned by gfw
 	} else if !s.cnIPList.Contains(hostname) {
-		routineType = "NOT_IN_CN_IP_LIST"
+		reason = "NOT_IN_CN_IP_LIST"
 		rt = false // service server is not located in china
 	}
 
-	s.c.SetDefault(hostname, rt)
+	s.kvCache.Set(hostname, strconv.FormatBool(rt))
 
 	return
 
