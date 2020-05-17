@@ -43,9 +43,8 @@ func NewKVCache(redisAddr ...string) (rt *KVCache) {
 			rt.MustGet = func(k string) string {
 				if r, exist := rt.Get(k); exist {
 					return r
-				} else {
-					return ""
 				}
+				return ""
 			}
 		}
 
