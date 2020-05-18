@@ -191,13 +191,17 @@ func (s *ProxyServer) handleConnect(w http.ResponseWriter, req *http.Request) {
 		return // error break
 	}
 
-	errChans := make(chan error, 2)
+	if remote != nil && conn != nil {
 
-	go pipe(remote, conn, errChans)
-	go pipe(conn, remote, errChans)
+		errChans := make(chan error, 2)
 
-	<-errChans
-	<-errChans
+		go pipe(remote, conn, errChans)
+		go pipe(conn, remote, errChans)
+
+		<-errChans
+		<-errChans
+
+	}
 
 	// all transfer finished
 	// close connections with 'defer'

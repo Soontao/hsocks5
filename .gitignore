@@ -18,6 +18,7 @@ test
 output
 output.*
 *.xlsx
+main
 main/*cli*
 main/build
 main/*.zip
