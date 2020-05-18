@@ -159,7 +159,9 @@ func (s *ProxyServer) handleConnect(w http.ResponseWriter, req *http.Request) {
 		return // error break
 	}
 
-	defer conn.Close()
+	if conn != nil {
+		defer conn.Close()
+	}
 
 	var remote net.Conn
 
@@ -178,14 +180,14 @@ func (s *ProxyServer) handleConnect(w http.ResponseWriter, req *http.Request) {
 		return // error break
 	}
 
-	defer remote.Close()
+	if remote != nil {
+		defer remote.Close()
+	}
 
 	bufrw.WriteString("HTTP/1.1 200 Connection established\r\n\r\n") // connect accept
 
 	if err := bufrw.Flush(); err != nil {
 		log.Println(err)
-		remote.Close()
-		conn.Close()
 		return // error break
 	}
 
@@ -198,6 +200,7 @@ func (s *ProxyServer) handleConnect(w http.ResponseWriter, req *http.Request) {
 	<-errChans
 
 	// all transfer finished
+	// close connections with 'defer'
 
 }
 
