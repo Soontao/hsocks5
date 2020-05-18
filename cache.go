@@ -32,6 +32,7 @@ func NewKVCache(redisAddr ...string) (rt *KVCache) {
 		if err != nil {
 			log.Println(err)
 		} else {
+			log.Println("with redis cache server")
 			rt.rClient = client
 			rt.Set = func(k, v string) {
 				rt.rClient.Set(k, v, timeout)
@@ -52,6 +53,8 @@ func NewKVCache(redisAddr ...string) (rt *KVCache) {
 
 	// without redis client
 	if rt.rClient == nil {
+
+		log.Println("with in-memory cache")
 
 		rt.memCache = cache.New(timeout, 1*time.Minute)
 		rt.Set = func(k, v string) {

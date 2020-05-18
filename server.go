@@ -22,23 +22,35 @@ type ProxyServer struct {
 	cnIPList  *IPList
 	kvCache   *KVCache
 	prom      http.Handler
-	socksAddr string
 	metric    *ProxyServerMetrics
 	kl        *KeyLock
+	option    *ProxyServerOption
+}
+
+// ProxyServerOption parameter
+type ProxyServerOption struct {
+	ListenAddr  string
+	RedisAddr   string
+	SocksAddr   string
+	ChinaSwitch bool
 }
 
 // NewProxyServer object
-func NewProxyServer(socksAddr string, cacheConfig ...string) (*ProxyServer, error) {
+func NewProxyServer(option *ProxyServerOption) (*ProxyServer, error) {
 	pIPList := LoadIPListFrom("assets/private_ip_list.txt")
 	cnIPList := LoadIPListFrom("assets/china_ip_list.txt")
 	prom := promhttp.Handler()
 
+	if option.ChinaSwitch {
+		log.Println("enable smart traffic transfer for china")
+	}
+
 	return &ProxyServer{
-		kvCache:   NewKVCache(cacheConfig...),
+		option:    option,
+		kvCache:   NewKVCache(option.RedisAddr),
 		m:         LoadGFWList(),
 		priIPList: pIPList,
 		cnIPList:  cnIPList,
-		socksAddr: socksAddr,
 		prom:      prom,
 		metric:    NewProxyServerMetrics(),
 		kl:        NewKeyLock(),
@@ -47,7 +59,7 @@ func NewProxyServer(socksAddr string, cacheConfig ...string) (*ProxyServer, erro
 }
 
 func (s *ProxyServer) createProxy() (proxy.Dialer, error) {
-	return proxy.SOCKS5("tcp", s.socksAddr, nil, proxy.Direct)
+	return proxy.SOCKS5("tcp", s.option.SocksAddr, nil, proxy.Direct)
 }
 
 func (s *ProxyServer) ServeHTTP(res http.ResponseWriter, req *http.Request) {
@@ -90,6 +102,11 @@ func (s *ProxyServer) isInGFWList(url string) bool {
 // 'true' means not require proxy
 // 'false' means require proxy
 func (s *ProxyServer) isWithoutProxy(hostnameOrURI string) (rt bool) {
+
+	// for other user, proxy all requests to socks5 proxy
+	if !s.option.ChinaSwitch {
+		return false
+	}
 
 	// avoid the in-consistence for single hostname
 	s.kl.Lock(hostnameOrURI)
@@ -300,6 +317,6 @@ func (s *ProxyServer) pipeResponse(from *http.Response, to http.ResponseWriter) 
 // Start server
 func (s *ProxyServer) Start(addr string) error {
 	hs := http.Server{Addr: addr, Handler: s}
-	log.Printf("start server at %v", addr)
+	log.Printf("start server at %v", s.option.ListenAddr)
 	return hs.ListenAndServe()
 }

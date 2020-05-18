@@ -16,7 +16,7 @@ Most `operation systems` (like `windows`, `android` & `iOS`) only support `HTTP 
 
 ## Setup with binary
 
-Download released binaries from [here](https://github.com/Soontao/hsocks5/releases). (you should download the correct binary for your platform)
+Download pre-built binaries from [here](https://github.com/Soontao/hsocks5/releases). (you should download the correct binary for your platform)
 
 And run with 
 

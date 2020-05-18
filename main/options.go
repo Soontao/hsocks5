@@ -10,13 +10,19 @@ var options = []cli.Flag{
 		Value:  ":18080",
 	},
 	&cli.StringFlag{
-		Name:   "socks, s",
-		EnvVar: "SOCKS",
-		Usage:  "Socks5 service url, format: hostname:port, 192.168.1.1:18080",
+		Name:     "socks, s",
+		EnvVar:   "SOCKS",
+		Required: true,
+		Usage:    "Socks5 service url, format: hostname:port, 192.168.1.1:18080",
 	},
 	&cli.StringFlag{
 		Name:   "redis, r",
 		EnvVar: "REDIS_SERVER",
-		Usage:  "Redis Server",
+		Usage:  "Redis server for proxy check",
+	},
+	&cli.BoolFlag{
+		Name:   "china-switchy",
+		EnvVar: "CHINA_SWITCHY",
+		Usage:  "For mainland china user, 'hsocks' can automatic use 'socks5 proxy' ondemand",
 	},
 }
