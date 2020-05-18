@@ -24,6 +24,7 @@ type ProxyServer struct {
 	prom      http.Handler
 	socksAddr string
 	metric    *ProxyServerMetrics
+	kl        *KeyLock
 }
 
 // NewProxyServer object
@@ -40,6 +41,7 @@ func NewProxyServer(socksAddr string, cacheConfig ...string) (*ProxyServer, erro
 		socksAddr: socksAddr,
 		prom:      prom,
 		metric:    NewProxyServerMetrics(),
+		kl:        NewKeyLock(),
 	}, nil
 
 }
@@ -84,8 +86,14 @@ func (s *ProxyServer) isInGFWList(url string) bool {
 	return b
 }
 
-// isDirectAccess the target
-func (s *ProxyServer) isDirectAccess(hostnameOrURI string) (rt bool) {
+// isWithoutProxy for the target
+// 'true' means not require proxy
+// 'false' means require proxy
+func (s *ProxyServer) isWithoutProxy(hostnameOrURI string) (rt bool) {
+
+	// avoid the in-consistence for single hostname
+	s.kl.Lock(hostnameOrURI)
+	defer s.kl.Unlock(hostnameOrURI)
 
 	s.metric.cacheHitTotal.WithLabelValues("check").Inc()
 
@@ -108,6 +116,7 @@ func (s *ProxyServer) isDirectAccess(hostnameOrURI string) (rt bool) {
 	}()
 
 	if cachedValue, exist := s.kvCache.Get(hostname); exist { // use hostname as cache key
+		reason = "CACHE"
 		s.metric.cacheHitTotal.WithLabelValues("with_cache").Inc()
 		if rt, err = strconv.ParseBool(cachedValue); err != nil {
 			log.Printf("parse bool failed for '%v', please check your cahce", hostnameOrURI)
@@ -165,7 +174,7 @@ func (s *ProxyServer) handleConnect(w http.ResponseWriter, req *http.Request) {
 
 	var remote net.Conn
 
-	if s.isDirectAccess(hostname) {
+	if s.isWithoutProxy(hostname) {
 		remote, err = net.Dial("tcp", host)
 	} else {
 		if dial, err := s.createProxy(); err == nil {
@@ -227,7 +236,7 @@ func (s *ProxyServer) handleProxyRequest(w http.ResponseWriter, req *http.Reques
 
 	var client http.Client
 
-	if s.isDirectAccess(req.RequestURI) {
+	if s.isWithoutProxy(req.RequestURI) {
 		client = http.Client{}
 	} else {
 		dialer, err := s.createProxy()
@@ -258,7 +267,7 @@ func (s *ProxyServer) handleProxyRequest(w http.ResponseWriter, req *http.Reques
 
 	} else {
 
-		s.metric.requestStatusTotal.WithLabelValues(newReq.URL.Hostname(), string(proxyResponse.StatusCode)).Inc()
+		s.metric.requestStatusTotal.WithLabelValues(newReq.URL.Hostname(), fmt.Sprint(proxyResponse.StatusCode)).Inc()
 		s.pipeResponse(proxyResponse, w)
 
 	}
