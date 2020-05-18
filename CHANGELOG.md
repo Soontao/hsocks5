@@ -1,4 +1,21 @@
 
+<a name="v0.0.4"></a>
+## [v0.0.4](https://github.com/Soontao/hsocks5/compare/v0.0.3...v0.0.4) (2020-05-18)
+
+### Bug Fixes
+
+* nil pointer again
+* nil pointer issue
+
+### Code Refactoring
+
+* return statement
+
+### Common
+
+* **release:** new version
+
+
 <a name="v0.0.3"></a>
 ## [v0.0.3](https://github.com/Soontao/hsocks5/compare/v0.0.2...v0.0.3) (2020-05-17)
 
