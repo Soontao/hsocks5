@@ -57,8 +57,10 @@ COMMANDS:
 GLOBAL OPTIONS:
    --addr value, -a value   HTTP proxy listen address (default: ":18080") [%ADDR%]
    --socks value, -s value  Socks5 service url, format: hostname:port, 192.168.1.1:18080 [%SOCKS%]
+   --redis value, -r value  Redis cache for proxy check [%REDIS_SERVER%]
+   --china-switchy          For mainland china user, 'hsocks' can automatic use 'socks5 proxy' ondemand [%CHINA_SWITCHY%]
    --help, -h               show help
-   --version, -v            print the version
+   --version, -v            print the versio
 ```
 
 ## Prometheus metric 

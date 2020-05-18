@@ -18,7 +18,7 @@ var options = []cli.Flag{
 	&cli.StringFlag{
 		Name:   "redis, r",
 		EnvVar: "REDIS_SERVER",
-		Usage:  "Redis server for proxy check",
+		Usage:  "Redis cache for proxy check",
 	},
 	&cli.BoolFlag{
 		Name:   "china-switchy",
