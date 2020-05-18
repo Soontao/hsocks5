@@ -9,34 +9,33 @@ import (
 )
 
 func TestNewKeyLock(t *testing.T) {
+
 	l := NewKeyLock()
 	k := "v1"
-	var t1, t2 time.Time
+	t1 := time.Now()
+	waitTime := time.Millisecond * 100
 	wg := sync.WaitGroup{}
 
-	wg.Add(1)
-	wg.Add(1)
-
-	go func() {
+	f := func() {
 		l.Lock(k)
-		time.Sleep(time.Second)
-		t1 = time.Now()
+		time.Sleep(waitTime)
 		l.Unlock(k)
 		wg.Done()
-	}()
+	}
 
-	go func() {
-		l.Lock(k)
-		t2 = time.Now()
-		l.Unlock(k)
-		wg.Done()
-	}()
+	wg.Add(1)
+	go f()
+
+	wg.Add(1)
+	go f()
 
 	wg.Wait()
 
-	dur := t1.Sub(t2).Microseconds()
+	dur := time.Now().Sub(t1).Microseconds()
+
+	expDur := 2 * waitTime.Microseconds()
 
 	// with some locks, it must wait some time
-	assert.True(t, dur >= time.Second.Microseconds())
+	assert.Truef(t, dur >= expDur, "must spent time more than %v, but spend: %v", expDur, dur)
 
 }
