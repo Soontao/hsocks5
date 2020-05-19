@@ -2,8 +2,11 @@ package hsocks5
 
 import (
 	"net"
+	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"testing"
+	"time"
 
 	"github.com/armon/go-socks5"
 	"github.com/stretchr/testify/assert"
@@ -12,6 +15,8 @@ import (
 func TestNewProxyServer(t *testing.T) {
 	socksAddr := "127.0.0.1:50001"
 	httpProxyAddr := "127.0.0.1:50002"
+	httpProxyURL, err := url.Parse("http://127.0.0.1:50002")
+	assert.NoError(t, err)
 	socksServer, err := socks5.New(&socks5.Config{})
 	assert.NoError(t, err)
 
@@ -28,6 +33,13 @@ func TestNewProxyServer(t *testing.T) {
 		SocksAddr:   socksAddr,
 		ChinaSwitch: true,
 	})
+
+	go func() {
+		e := p.Start()
+		assert.NoError(t, e)
+	}()
+
+	time.Sleep(100 * time.Microsecond) // wait some seconds, make sever started
 
 	assert.NoError(t, err)
 	assert.False(t, p.isWithoutProxy("https://www.google.com"), "'google' should be with proxy")
@@ -52,4 +64,12 @@ func TestNewProxyServer(t *testing.T) {
 	p.handleRequest(w, req)
 	resp = w.Result()
 	assert.Equal(t, 404, resp.StatusCode)
+
+	c := &http.Client{Transport: &http.Transport{Proxy: http.ProxyURL(httpProxyURL)}}
+	req, err = http.NewRequest("GET", "https://github.com", nil)
+	assert.NoError(t, err)
+	resp, err = c.Do(req)
+	assert.NoError(t, err)
+	assert.Equal(t, 200, resp.StatusCode)
+
 }
