@@ -327,8 +327,8 @@ func (s *ProxyServer) pipeResponse(from *http.Response, to http.ResponseWriter) 
 }
 
 // Start server
-func (s *ProxyServer) Start(addr string) error {
-	hs := http.Server{Addr: addr, Handler: s}
+func (s *ProxyServer) Start() error {
+	hs := http.Server{Addr: s.option.ListenAddr, Handler: s}
 	log.Printf("start server at %v", s.option.ListenAddr)
 	return hs.ListenAndServe()
 }

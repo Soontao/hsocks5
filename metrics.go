@@ -11,8 +11,14 @@ type ProxyServerMetrics struct {
 	errorTotal         *prometheus.CounterVec
 }
 
+var metricSingleInstace *ProxyServerMetrics
+
 // NewProxyServerMetrics constructor
 func NewProxyServerMetrics() (rt *ProxyServerMetrics) {
+	if metricSingleInstace != nil {
+		return metricSingleInstace
+	}
+
 	rt = &ProxyServerMetrics{}
 
 	rt.connTotal = prometheus.NewCounterVec(
@@ -40,11 +46,15 @@ func NewProxyServerMetrics() (rt *ProxyServerMetrics) {
 		[]string{"category", "context"},
 	)
 
-	prometheus.MustRegister(rt.connTotal)
-	prometheus.MustRegister(rt.requestStatusTotal)
-	prometheus.MustRegister(rt.cacheHitTotal)
-	prometheus.MustRegister(rt.routineResultTotal)
-	prometheus.MustRegister(rt.errorTotal)
+	prometheus.MustRegister(
+		rt.connTotal,
+		rt.requestStatusTotal,
+		rt.cacheHitTotal,
+		rt.routineResultTotal,
+		rt.errorTotal,
+	)
+
+	metricSingleInstace = rt
 
 	return
 }
