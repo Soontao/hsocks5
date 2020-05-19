@@ -1,4 +1,25 @@
 
+<a name="v0.0.6"></a>
+## [v0.0.6](https://github.com/Soontao/hsocks5/compare/v0.0.5...v0.0.6) (2020-05-19)
+
+### Code Refactoring
+
+* more unit test
+* more test
+* unit test
+* unit tests
+* lock logic
+
+### Common
+
+* doc update
+* **release:** new version
+
+### Features
+
+* error metric
+
+
 <a name="v0.0.5"></a>
 ## [v0.0.5](https://github.com/Soontao/hsocks5/compare/v0.0.4...v0.0.5) (2020-05-18)
 
