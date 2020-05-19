@@ -1,6 +1,7 @@
 package hsocks5
 
 import (
+	"fmt"
 	"net"
 	"net/http"
 	"net/http/httptest"
@@ -67,6 +68,12 @@ func TestNewProxyServer(t *testing.T) {
 
 	c := &http.Client{Transport: &http.Transport{Proxy: http.ProxyURL(httpProxyURL)}}
 	req, err = http.NewRequest("GET", "https://github.com", nil)
+	assert.NoError(t, err)
+	resp, err = c.Do(req)
+	assert.NoError(t, err)
+	assert.Equal(t, 200, resp.StatusCode)
+
+	req, err = http.NewRequest("GET", fmt.Sprintf("http://%v/hsocks5/__/metric", httpProxyAddr), nil)
 	assert.NoError(t, err)
 	resp, err = c.Do(req)
 	assert.NoError(t, err)

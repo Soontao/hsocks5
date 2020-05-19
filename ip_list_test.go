@@ -20,4 +20,11 @@ func TestCNIPList(t *testing.T) {
 	assert.True(t, ipList.Contains("39.156.69.79"))    // baidu.com
 	assert.True(t, ipList.Contains("114.114.114.114")) // 114 DNS
 	assert.False(t, ipList.Contains("172.217.160.78")) // google
+
+	// any match, return true
+	assert.True(t, ipList.MultiContains([]string{
+		"114.114.114.114",
+		"172.217.160.78",
+	}))
+
 }
