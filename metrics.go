@@ -8,13 +8,17 @@ type ProxyServerMetrics struct {
 	requestStatusTotal *prometheus.CounterVec
 	cacheHitTotal      *prometheus.CounterVec
 	routineResultTotal *prometheus.CounterVec
+	errorTotal         *prometheus.CounterVec
 }
 
 // NewProxyServerMetrics constructor
 func NewProxyServerMetrics() (rt *ProxyServerMetrics) {
 	rt = &ProxyServerMetrics{}
 
-	rt.connTotal = prometheus.NewCounterVec(prometheus.CounterOpts{Name: "hsocks5_conn_total", Help: "Total Connections"}, []string{"type"})
+	rt.connTotal = prometheus.NewCounterVec(
+		prometheus.CounterOpts{Name: "hsocks5_conn_total", Help: "Total Connections"},
+		[]string{"type"},
+	)
 
 	rt.requestStatusTotal = prometheus.NewCounterVec(
 		prometheus.CounterOpts{Name: "hsocks5_request_status_total", Help: "Request Status"},
@@ -31,10 +35,21 @@ func NewProxyServerMetrics() (rt *ProxyServerMetrics) {
 		[]string{"hostname", "result", "reason"},
 	)
 
+	rt.errorTotal = prometheus.NewCounterVec(
+		prometheus.CounterOpts{Name: "hsocks5_error_total", Help: "HSOCKS all errors"},
+		[]string{"category", "context"},
+	)
+
 	prometheus.MustRegister(rt.connTotal)
 	prometheus.MustRegister(rt.requestStatusTotal)
 	prometheus.MustRegister(rt.cacheHitTotal)
 	prometheus.MustRegister(rt.routineResultTotal)
+	prometheus.MustRegister(rt.errorTotal)
 
 	return
+}
+
+// AddErrorMetric count
+func (m *ProxyServerMetrics) AddErrorMetric(category, context string) {
+	m.errorTotal.WithLabelValues(category, context).Inc()
 }

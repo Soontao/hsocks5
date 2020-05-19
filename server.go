@@ -125,6 +125,7 @@ func (s *ProxyServer) isWithoutProxy(hostnameOrURI string) (rt bool) {
 	hostname := url.Hostname()
 
 	// avoid the in-consistence for single hostname
+	// lock in `hostname` level
 	s.kl.Lock(hostname)
 	defer s.kl.Unlock(hostname)
 
@@ -137,12 +138,14 @@ func (s *ProxyServer) isWithoutProxy(hostnameOrURI string) (rt bool) {
 		reason = "CACHE"
 		s.metric.cacheHitTotal.WithLabelValues("with_cache").Inc()
 		if rt, err = strconv.ParseBool(cachedValue); err != nil {
+			s.metric.AddErrorMetric("check", "parse_bool")
 			log.Printf("parse bool failed for '%v', please check your cahce", hostnameOrURI)
 		}
 		return
 	}
 
 	if err != nil {
+		s.metric.AddErrorMetric("check", "parse_bool")
 		log.Printf("parse url '%v' failed.", normalizeURI)
 		return
 	}
@@ -174,6 +177,7 @@ func (s *ProxyServer) handleConnect(w http.ResponseWriter, req *http.Request) {
 	hj, ok := w.(http.Hijacker)
 
 	if !ok {
+		s.metric.AddErrorMetric("connect", "hijacker failed")
 		s.sendError(w, fmt.Errorf("Proxt Server Internal Error"))
 		return // error break
 	}
@@ -182,6 +186,7 @@ func (s *ProxyServer) handleConnect(w http.ResponseWriter, req *http.Request) {
 
 	if err != nil {
 		log.Println(err)
+		s.metric.AddErrorMetric("connect", "hijacker conn failed")
 		s.sendError(w, err)
 		return // error break
 	}
@@ -197,8 +202,10 @@ func (s *ProxyServer) handleConnect(w http.ResponseWriter, req *http.Request) {
 	} else {
 		if dial, err := s.createProxy(); err == nil {
 			remote, err = dial.Dial("tcp", host)
+		} else {
+			s.metric.AddErrorMetric("connect", "dial proxy failed")
+			s.sendError(w, err)
 		}
-
 	}
 
 	if err != nil {
@@ -214,6 +221,7 @@ func (s *ProxyServer) handleConnect(w http.ResponseWriter, req *http.Request) {
 	bufrw.WriteString("HTTP/1.1 200 Connection established\r\n\r\n") // connect accept
 
 	if err := bufrw.Flush(); err != nil {
+		s.metric.AddErrorMetric("connect", "buffer flush failed")
 		log.Println(err)
 		return // error break
 	}
@@ -259,6 +267,7 @@ func (s *ProxyServer) handleProxyRequest(w http.ResponseWriter, req *http.Reques
 	} else {
 		dialer, err := s.createProxy()
 		if err != nil {
+			s.metric.AddErrorMetric("request", "create proxy failed")
 			s.sendError(w, err)
 			return
 		}
@@ -272,6 +281,7 @@ func (s *ProxyServer) handleProxyRequest(w http.ResponseWriter, req *http.Reques
 
 	if err != nil {
 		log.Println(err)
+		s.metric.AddErrorMetric("request", "copy original request failed")
 		s.sendError(w, err)
 		return
 	}
@@ -281,6 +291,7 @@ func (s *ProxyServer) handleProxyRequest(w http.ResponseWriter, req *http.Reques
 	if err != nil {
 
 		log.Println(err)
+		s.metric.AddErrorMetric("request", "send request")
 		s.sendError(w, err)
 
 	} else {

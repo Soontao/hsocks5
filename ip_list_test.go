@@ -15,6 +15,8 @@ func TestPrivateIPList(t *testing.T) {
 
 func TestCNIPList(t *testing.T) {
 	ipList := LoadIPListFrom("assets/china_ip_list.txt")
+	assert.True(t, ipList.Contains("cn.aliyun.com"))
+	assert.True(t, ipList.Contains("111.206.4.92"))    // wx3.sinaimg.cn
 	assert.True(t, ipList.Contains("39.156.69.79"))    // baidu.com
 	assert.True(t, ipList.Contains("114.114.114.114")) // 114 DNS
 	assert.False(t, ipList.Contains("172.217.160.78")) // google
