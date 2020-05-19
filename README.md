@@ -1,10 +1,10 @@
 # HSocks5
 
-![Snapshot Build](https://github.com/Soontao/hsocks5/workflows/Snapshot%20Build/badge.svg)
-![CircleCI](https://img.shields.io/circleci/build/github/Soontao/hsocks5)
+![GitHub Workflow Status](https://img.shields.io/github/workflow/status/Soontao/hsocks5/Snapshot%20Build?label=Github%20CI)
+![CircleCI](https://img.shields.io/circleci/build/github/Soontao/hsocks5?label=Circle%20CI)
 [![codecov](https://codecov.io/gh/Soontao/hsocks5/branch/master/graph/badge.svg)](https://codecov.io/gh/Soontao/hsocks5)
 [![Docker Cloud Build Status](https://img.shields.io/docker/cloud/build/thedockerimages/hsocks5)](https://hub.docker.com/repository/docker/thedockerimages/hsocks5)
-[![Size](https://shields.beevelop.com/docker/image/image-size/thedockerimages/hsocks5/latest.svg?style=flat-square)](https://hub.docker.com/repository/docker/thedockerimages/hsocks5)
+[![Docker Image Size (tag)](https://img.shields.io/docker/image-size/thedockerimages/hsocks5/latest)](https://hub.docker.com/repository/docker/thedockerimages/hsocks5)
 
 Provide HTTP Proxy based on Socks5 Proxy. 
 
