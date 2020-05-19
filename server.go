@@ -108,10 +108,6 @@ func (s *ProxyServer) isWithoutProxy(hostnameOrURI string) (rt bool) {
 		return false
 	}
 
-	// avoid the in-consistence for single hostname
-	s.kl.Lock(hostnameOrURI)
-	defer s.kl.Unlock(hostnameOrURI)
-
 	s.metric.cacheHitTotal.WithLabelValues("check").Inc()
 
 	reason := "FALLBACK"
@@ -128,6 +124,11 @@ func (s *ProxyServer) isWithoutProxy(hostnameOrURI string) (rt bool) {
 
 	hostname := url.Hostname()
 
+	// avoid the in-consistence for single hostname
+	s.kl.Lock(hostname)
+	defer s.kl.Unlock(hostname)
+
+	// metric log
 	defer func() {
 		s.metric.routineResultTotal.WithLabelValues(hostname, strconv.FormatBool(rt), reason).Inc()
 	}()
