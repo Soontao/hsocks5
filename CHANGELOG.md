@@ -1,4 +1,22 @@
 
+<a name="v0.0.5"></a>
+## [v0.0.5](https://github.com/Soontao/hsocks5/compare/v0.0.4...v0.0.5) (2020-05-18)
+
+### Bug Fixes
+
+* unit test error
+* [#5](https://github.com/Soontao/hsocks5/issues/5) with key based lock
+
+### Common
+
+* ci & doc update
+* **release:** new version
+
+### Features
+
+* [#2](https://github.com/Soontao/hsocks5/issues/2) china switchy
+
+
 <a name="v0.0.4"></a>
 ## [v0.0.4](https://github.com/Soontao/hsocks5/compare/v0.0.3...v0.0.4) (2020-05-18)
 
