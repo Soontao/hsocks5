@@ -18,6 +18,7 @@ func TestNewProxyServer(t *testing.T) {
 	httpProxyAddr := "127.0.0.1:50002"
 	httpProxyURL, err := url.Parse("http://127.0.0.1:50002")
 	assert.NoError(t, err)
+	// mock socks server
 	socksServer, err := socks5.New(&socks5.Config{})
 	assert.NoError(t, err)
 
@@ -40,7 +41,7 @@ func TestNewProxyServer(t *testing.T) {
 		assert.NoError(t, e)
 	}()
 
-	time.Sleep(100 * time.Microsecond) // wait some seconds, make sever started
+	time.Sleep(100 * time.Microsecond) // wait some micro-seconds, make sever started
 
 	assert.NoError(t, err)
 	assert.False(t, p.isWithoutProxy("https://www.google.com"), "'google' should be with proxy")
@@ -73,7 +74,11 @@ func TestNewProxyServer(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, 200, resp.StatusCode)
 
-	req, err = http.NewRequest("GET", fmt.Sprintf("http://%v/hsocks5/__/metric", httpProxyAddr), nil)
+	req, err = http.NewRequest(
+		"GET",
+		fmt.Sprintf("http://%v/hsocks5/__/metric", httpProxyAddr),
+		nil,
+	)
 	assert.NoError(t, err)
 	resp, err = c.Do(req)
 	assert.NoError(t, err)

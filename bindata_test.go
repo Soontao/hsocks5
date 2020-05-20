@@ -22,6 +22,11 @@ func TestBinData(t *testing.T) {
 	info.Mode()
 	info.ModTime()
 	info.Sys()
+	info.(bindataFileInfo).MD5Checksum()
 	AssetDir("assets")
 	assert.True(t, len(AssetNames()) > 0)
+
+	_, err := AssetInfo("assets/not_existed_file")
+	assert.Error(t, err)
+
 }

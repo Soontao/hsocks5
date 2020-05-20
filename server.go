@@ -3,12 +3,13 @@ package hsocks5
 import (
 	"fmt"
 	"io"
-	"log"
 	"net"
 	"net/http"
 	"net/url"
 	"strconv"
 	"strings"
+
+	log "github.com/sirupsen/logrus"
 
 	"github.com/pmezard/adblock/adblock"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
@@ -42,7 +43,7 @@ func NewProxyServer(option *ProxyServerOption) (*ProxyServer, error) {
 	prom := promhttp.Handler()
 
 	if option.ChinaSwitch {
-		log.Println("enable smart traffic transfer for china")
+		log.Info("enable smart traffic transfer for china")
 	}
 
 	return &ProxyServer{
@@ -139,14 +140,14 @@ func (s *ProxyServer) isWithoutProxy(hostnameOrURI string) (rt bool) {
 		s.metric.cacheHitTotal.WithLabelValues("with_cache").Inc()
 		if rt, err = strconv.ParseBool(cachedValue); err != nil {
 			s.metric.AddErrorMetric("check", "parse_bool")
-			log.Printf("parse bool failed for '%v', please check your cahce", hostnameOrURI)
+			log.Errorf("parse bool failed for '%v', please check your cahce", hostnameOrURI)
 		}
 		return
 	}
 
 	if err != nil {
 		s.metric.AddErrorMetric("check", "parse_bool")
-		log.Printf("parse url '%v' failed.", normalizeURI)
+		log.Errorf("parse url '%v' failed.", normalizeURI)
 		return
 	}
 
@@ -172,11 +173,12 @@ func (s *ProxyServer) handleConnect(w http.ResponseWriter, req *http.Request) {
 	host := req.Host // host & port
 	hostname := req.URL.Hostname()
 
-	log.Printf("CONNECT %v", host)
+	log.Infof("CONNECT %v", host)
 
 	hj, ok := w.(http.Hijacker)
 
 	if !ok {
+		log.Error("hijacker http request failed")
 		s.metric.AddErrorMetric("connect", "hijacker failed")
 		s.sendError(w, fmt.Errorf("Proxt Server Internal Error"))
 		return // error break
@@ -185,7 +187,7 @@ func (s *ProxyServer) handleConnect(w http.ResponseWriter, req *http.Request) {
 	conn, bufrw, err := hj.Hijack() // get TCp connection
 
 	if err != nil {
-		log.Println(err)
+		log.Error(err)
 		s.metric.AddErrorMetric("connect", "hijacker conn failed")
 		s.sendError(w, err)
 		return // error break
@@ -209,7 +211,7 @@ func (s *ProxyServer) handleConnect(w http.ResponseWriter, req *http.Request) {
 	}
 
 	if err != nil {
-		log.Println(err)
+		log.Error(err)
 		conn.Close()
 		return // error break
 	}
@@ -222,7 +224,7 @@ func (s *ProxyServer) handleConnect(w http.ResponseWriter, req *http.Request) {
 
 	if err := bufrw.Flush(); err != nil {
 		s.metric.AddErrorMetric("connect", "buffer flush failed")
-		log.Println(err)
+		log.Error(err)
 		return // error break
 	}
 
@@ -258,7 +260,7 @@ func (s *ProxyServer) handleRequest(w http.ResponseWriter, req *http.Request) {
 
 func (s *ProxyServer) handleProxyRequest(w http.ResponseWriter, req *http.Request) {
 	host := req.Host // host & port
-	log.Printf("HTTP %v %v", req.Method, host)
+	log.Infof("HTTP %v %v", req.Method, host)
 
 	var client http.Client
 
@@ -280,7 +282,7 @@ func (s *ProxyServer) handleProxyRequest(w http.ResponseWriter, req *http.Reques
 	newReq.Header = req.Header.Clone()
 
 	if err != nil {
-		log.Println(err)
+		log.Error(err)
 		s.metric.AddErrorMetric("request", "copy original request failed")
 		s.sendError(w, err)
 		return
@@ -290,7 +292,7 @@ func (s *ProxyServer) handleProxyRequest(w http.ResponseWriter, req *http.Reques
 
 	if err != nil {
 
-		log.Println(err)
+		log.Error(err)
 		s.metric.AddErrorMetric("request", "send request")
 		s.sendError(w, err)
 
@@ -329,6 +331,6 @@ func (s *ProxyServer) pipeResponse(from *http.Response, to http.ResponseWriter) 
 // Start server
 func (s *ProxyServer) Start() error {
 	hs := http.Server{Addr: s.option.ListenAddr, Handler: s}
-	log.Printf("start server at %v", s.option.ListenAddr)
+	log.Infof("start server at %v", s.option.ListenAddr)
 	return hs.ListenAndServe()
 }

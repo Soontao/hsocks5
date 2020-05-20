@@ -1,8 +1,9 @@
 package hsocks5
 
 import (
-	"log"
 	"time"
+
+	log "github.com/sirupsen/logrus"
 
 	"github.com/go-redis/redis"
 
