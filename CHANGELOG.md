@@ -1,4 +1,13 @@
 
+<a name="v0.0.8"></a>
+## [v0.0.8](https://github.com/Soontao/hsocks5/compare/v0.0.7...v0.0.8) (2020-05-21)
+
+### Common
+
+* update dialer
+* **release:** new version
+
+
 <a name="v0.0.7"></a>
 ## [v0.0.7](https://github.com/Soontao/hsocks5/compare/v0.0.6...v0.0.7) (2020-05-21)
 
