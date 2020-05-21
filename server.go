@@ -26,6 +26,7 @@ type ProxyServer struct {
 	metric    *ProxyServerMetrics
 	kl        *KeyLock
 	option    *ProxyServerOption
+	dialer    *proxy.Dialer
 }
 
 // ProxyServerOption parameter
@@ -34,6 +35,7 @@ type ProxyServerOption struct {
 	RedisAddr   string
 	SocksAddr   string
 	ChinaSwitch bool
+	Dialer      *proxy.Dialer
 }
 
 // NewProxyServer object
@@ -55,11 +57,15 @@ func NewProxyServer(option *ProxyServerOption) (*ProxyServer, error) {
 		prom:      prom,
 		metric:    NewProxyServerMetrics(),
 		kl:        NewKeyLock(),
+		dialer:    option.Dialer,
 	}, nil
 
 }
 
 func (s *ProxyServer) createProxy() (proxy.Dialer, error) {
+	if s.dialer != nil {
+		return *s.dialer, nil
+	}
 	return proxy.SOCKS5("tcp", s.option.SocksAddr, nil, proxy.Direct)
 }
 
