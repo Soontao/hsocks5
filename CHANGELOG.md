@@ -1,4 +1,17 @@
 
+<a name="v0.0.7"></a>
+## [v0.0.7](https://github.com/Soontao/hsocks5/compare/v0.0.6...v0.0.7) (2020-05-21)
+
+### Common
+
+* **release:** new version
+
+### Features
+
+* allow user specify the dialer
+* switch logger
+
+
 <a name="v0.0.6"></a>
 ## [v0.0.6](https://github.com/Soontao/hsocks5/compare/v0.0.5...v0.0.6) (2020-05-19)
 
