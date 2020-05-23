@@ -1,4 +1,16 @@
 
+<a name="v0.0.9"></a>
+## [v0.0.9](https://github.com/Soontao/hsocks5/compare/v0.0.8...v0.0.9) (2020-05-23)
+
+### Code Refactoring
+
+* logger
+
+### Common
+
+* **release:** new version
+
+
 <a name="v0.0.8"></a>
 ## [v0.0.8](https://github.com/Soontao/hsocks5/compare/v0.0.7...v0.0.8) (2020-05-21)
 
