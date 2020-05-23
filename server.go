@@ -27,6 +27,7 @@ type ProxyServer struct {
 	kl        *KeyLock
 	option    *ProxyServerOption
 	dialer    proxy.Dialer
+	logger    *log.Entry
 }
 
 // ProxyServerOption parameter
@@ -43,9 +44,10 @@ func NewProxyServer(option *ProxyServerOption) (*ProxyServer, error) {
 	pIPList := LoadIPListFrom("assets/private_ip_list.txt")
 	cnIPList := LoadIPListFrom("assets/china_ip_list.txt")
 	prom := promhttp.Handler()
+	logger := log.WithField("module", "hsocks5-server")
 
 	if option.ChinaSwitch {
-		log.Info("enable smart traffic transfer for china")
+		logger.Info("enable smart traffic transfer for china")
 	}
 
 	return &ProxyServer{
@@ -58,6 +60,7 @@ func NewProxyServer(option *ProxyServerOption) (*ProxyServer, error) {
 		metric:    NewProxyServerMetrics(),
 		kl:        NewKeyLock(),
 		dialer:    option.Dialer,
+		logger:    logger,
 	}, nil
 
 }
@@ -146,14 +149,14 @@ func (s *ProxyServer) isWithoutProxy(hostnameOrURI string) (rt bool) {
 		s.metric.cacheHitTotal.WithLabelValues("with_cache").Inc()
 		if rt, err = strconv.ParseBool(cachedValue); err != nil {
 			s.metric.AddErrorMetric("check", "parse_bool")
-			log.Errorf("parse bool failed for '%v', please check your cahce", hostnameOrURI)
+			s.logger.Errorf("parse bool failed for '%v', please check your cahce", hostnameOrURI)
 		}
 		return
 	}
 
 	if err != nil {
 		s.metric.AddErrorMetric("check", "parse_bool")
-		log.Errorf("parse url '%v' failed.", normalizeURI)
+		s.logger.Errorf("parse url '%v' failed.", normalizeURI)
 		return
 	}
 
@@ -179,12 +182,12 @@ func (s *ProxyServer) handleConnect(w http.ResponseWriter, req *http.Request) {
 	host := req.Host // host & port
 	hostname := req.URL.Hostname()
 
-	log.Infof("CONNECT %v", host)
+	s.logger.Infof("CONNECT %v", host)
 
 	hj, ok := w.(http.Hijacker)
 
 	if !ok {
-		log.Error("hijacker http request failed")
+		s.logger.Error("hijacker http request failed")
 		s.metric.AddErrorMetric("connect", "hijacker failed")
 		s.sendError(w, fmt.Errorf("Proxt Server Internal Error"))
 		return // error break
@@ -193,7 +196,7 @@ func (s *ProxyServer) handleConnect(w http.ResponseWriter, req *http.Request) {
 	conn, bufrw, err := hj.Hijack() // get TCp connection
 
 	if err != nil {
-		log.Error(err)
+		s.logger.Error(err)
 		s.metric.AddErrorMetric("connect", "hijacker conn failed")
 		s.sendError(w, err)
 		return // error break
@@ -217,7 +220,7 @@ func (s *ProxyServer) handleConnect(w http.ResponseWriter, req *http.Request) {
 	}
 
 	if err != nil {
-		log.Error(err)
+		s.logger.Error(err)
 		conn.Close()
 		return // error break
 	}
@@ -230,7 +233,7 @@ func (s *ProxyServer) handleConnect(w http.ResponseWriter, req *http.Request) {
 
 	if err := bufrw.Flush(); err != nil {
 		s.metric.AddErrorMetric("connect", "buffer flush failed")
-		log.Error(err)
+		s.logger.Error(err)
 		return // error break
 	}
 
@@ -266,7 +269,7 @@ func (s *ProxyServer) handleRequest(w http.ResponseWriter, req *http.Request) {
 
 func (s *ProxyServer) handleProxyRequest(w http.ResponseWriter, req *http.Request) {
 	host := req.Host // host & port
-	log.Infof("HTTP %v %v", req.Method, host)
+	s.logger.Infof("HTTP %v %v", req.Method, host)
 
 	var client http.Client
 
@@ -288,7 +291,7 @@ func (s *ProxyServer) handleProxyRequest(w http.ResponseWriter, req *http.Reques
 	newReq.Header = req.Header.Clone()
 
 	if err != nil {
-		log.Error(err)
+		s.logger.Error(err)
 		s.metric.AddErrorMetric("request", "copy original request failed")
 		s.sendError(w, err)
 		return
@@ -298,7 +301,7 @@ func (s *ProxyServer) handleProxyRequest(w http.ResponseWriter, req *http.Reques
 
 	if err != nil {
 
-		log.Error(err)
+		s.logger.Error(err)
 		s.metric.AddErrorMetric("request", "send request")
 		s.sendError(w, err)
 
@@ -337,6 +340,6 @@ func (s *ProxyServer) pipeResponse(from *http.Response, to http.ResponseWriter) 
 // Start server
 func (s *ProxyServer) Start() error {
 	hs := http.Server{Addr: s.option.ListenAddr, Handler: s}
-	log.Infof("start server at %v", s.option.ListenAddr)
+	s.logger.Infof("start server at %v", s.option.ListenAddr)
 	return hs.ListenAndServe()
 }
