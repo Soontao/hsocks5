@@ -36,7 +36,8 @@ type ProxyServerOption struct {
 	RedisAddr   string
 	SocksAddr   string
 	ChinaSwitch bool
-	Dialer      proxy.Dialer
+	// provided dialer, will prefer use this programming dialer instead of socks5 service
+	Dialer proxy.Dialer
 }
 
 // NewProxyServer object
@@ -59,17 +60,20 @@ func NewProxyServer(option *ProxyServerOption) (*ProxyServer, error) {
 		prom:      prom,
 		metric:    NewProxyServerMetrics(),
 		kl:        NewKeyLock(),
-		dialer:    option.Dialer,
 		logger:    logger,
 	}, nil
 
 }
 
-func (s *ProxyServer) createProxy() (proxy.Dialer, error) {
-	if s.dialer != nil {
-		return s.dialer, nil
+// getDialer for establishing tcp connection
+//
+// this function will provide the flexibility of dynamic proxy provider
+func (s *ProxyServer) getDialer() (rt proxy.Dialer, err error) {
+	rt = s.option.Dialer
+	if rt == nil {
+		rt, err = proxy.SOCKS5("tcp", s.option.SocksAddr, nil, proxy.Direct)
 	}
-	return proxy.SOCKS5("tcp", s.option.SocksAddr, nil, proxy.Direct)
+	return
 }
 
 func (s *ProxyServer) ServeHTTP(res http.ResponseWriter, req *http.Request) {
@@ -211,7 +215,7 @@ func (s *ProxyServer) handleConnect(w http.ResponseWriter, req *http.Request) {
 	if s.isWithoutProxy(hostname) {
 		remote, err = net.Dial("tcp", host)
 	} else {
-		if dial, err := s.createProxy(); err == nil {
+		if dial, err := s.getDialer(); err == nil {
 			remote, err = dial.Dial("tcp", host)
 		} else {
 			s.metric.AddErrorMetric("connect", "dial proxy failed")
@@ -276,7 +280,7 @@ func (s *ProxyServer) handleProxyRequest(w http.ResponseWriter, req *http.Reques
 	if s.isWithoutProxy(req.RequestURI) {
 		client = http.Client{}
 	} else {
-		dialer, err := s.createProxy()
+		dialer, err := s.getDialer()
 		if err != nil {
 			s.metric.AddErrorMetric("request", "create proxy failed")
 			s.sendError(w, err)

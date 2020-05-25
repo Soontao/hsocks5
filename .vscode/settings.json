@@ -1,6 +1,5 @@
 {
   "go.formatTool": "goimports",
-  "cSpell.enabled": false,
   "editor.wordWrap": "on",
   "[go]": {
     "editor.snippetSuggestions": "none",
