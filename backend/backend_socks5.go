@@ -7,22 +7,48 @@ import (
 	"golang.org/x/net/proxy"
 )
 
+// DefaultHealthCheckEndpoint is google
+const DefaultHealthCheckEndpoint = "https://www.google.com"
+
+// Socks5ProxyBackendOption type
+type Socks5ProxyBackendOption struct {
+	Addr           string
+	Name           string
+	HealthEndpoint string
+}
+
 // NewSocks5ProxyBackend instance
 //
 // addr: a tcp address like '192.168.3.88:18080'
 // name: the id of this socks5 proxy
-func NewSocks5ProxyBackend(addr string, name string) (ProxyBackend, error) {
-	dialer, err := proxy.SOCKS5("tcp", addr, nil, proxy.Direct)
+func NewSocks5ProxyBackend(opt *Socks5ProxyBackendOption) (ProxyBackend, error) {
+
+	dialer, err := proxy.SOCKS5("tcp", opt.Addr, nil, proxy.Direct)
+
 	if err != nil {
 		return nil, err
 	}
-	return &socks5ProxyBackend{dialer: dialer, name: name, rtt: RTTErrorNotCheck}, nil
+
+	rt := &socks5ProxyBackend{
+		dialer:              dialer,
+		name:                opt.Name,
+		rtt:                 RTTErrorNotCheck,
+		healthCheckEndpoint: opt.HealthEndpoint,
+	}
+
+	if len(rt.healthCheckEndpoint) == 0 {
+		rt.healthCheckEndpoint = DefaultHealthCheckEndpoint
+	}
+
+	return rt, nil
+
 }
 
 type socks5ProxyBackend struct {
-	name   string
-	dialer proxy.Dialer
-	rtt    time.Duration
+	name                string
+	dialer              proxy.Dialer
+	rtt                 time.Duration
+	healthCheckEndpoint string
 }
 
 func (p *socks5ProxyBackend) GetDialer() proxy.Dialer {
@@ -40,7 +66,7 @@ func (p *socks5ProxyBackend) IsHealth() bool {
 func (p *socks5ProxyBackend) HealthCheck() error {
 	c := &http.Client{Transport: &http.Transport{Dial: p.GetDialer().Dial}}
 	t1 := time.Now()
-	res, err := c.Head("https://www.google.com")
+	res, err := c.Head(p.healthCheckEndpoint) // HEAD without content
 	if err != nil {
 		p.rtt = RTTErrorHappened
 		return err
