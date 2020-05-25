@@ -282,7 +282,10 @@ func (s *ProxyServer) handleProxyRequest(w http.ResponseWriter, req *http.Reques
 			s.sendError(w, err)
 			return
 		}
-		client = http.Client{Transport: &http.Transport{Dial: dialer.Dial}}
+		client = http.Client{
+			Transport:     &http.Transport{Dial: dialer.Dial},
+			CheckRedirect: noRedirect,
+		}
 	}
 
 	// create a new http request from original inbound request
