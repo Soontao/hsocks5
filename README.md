@@ -3,6 +3,7 @@
 ![GitHub Workflow Status](https://img.shields.io/github/workflow/status/Soontao/hsocks5/Snapshot%20Build?label=Github%20CI)
 ![CircleCI](https://img.shields.io/circleci/build/github/Soontao/hsocks5?label=Circle%20CI)
 [![codecov](https://codecov.io/gh/Soontao/hsocks5/branch/master/graph/badge.svg)](https://codecov.io/gh/Soontao/hsocks5)
+[![Total alerts](https://img.shields.io/lgtm/alerts/g/Soontao/hsocks5.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/Soontao/hsocks5/alerts/)
 [![Docker Cloud Build Status](https://img.shields.io/docker/cloud/build/thedockerimages/hsocks5)](https://hub.docker.com/repository/docker/thedockerimages/hsocks5)
 [![Docker Image Size (tag)](https://img.shields.io/docker/image-size/thedockerimages/hsocks5/latest)](https://hub.docker.com/repository/docker/thedockerimages/hsocks5)
 

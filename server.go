@@ -213,14 +213,20 @@ func (s *ProxyServer) handleConnect(w http.ResponseWriter, req *http.Request) {
 	var remote net.Conn
 
 	if s.isWithoutProxy(hostname) {
+
 		remote, err = net.Dial("tcp", host)
+
 	} else {
+
 		if dial, err := s.getDialer(); err == nil {
 			remote, err = dial.Dial("tcp", host)
-		} else {
+		}
+
+		if err != nil {
 			s.metric.AddErrorMetric("connect", "dial proxy failed")
 			s.sendError(w, err)
 		}
+
 	}
 
 	if err != nil {
