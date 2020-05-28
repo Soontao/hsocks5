@@ -9,6 +9,7 @@ type ProxyServerMetrics struct {
 	cacheHitTotal      *prometheus.CounterVec
 	routineResultTotal *prometheus.CounterVec
 	errorTotal         *prometheus.CounterVec
+	trafficSizeTotal   *prometheus.CounterVec
 }
 
 var metricSingleInstace *ProxyServerMetrics
@@ -46,12 +47,18 @@ func NewProxyServerMetrics() (rt *ProxyServerMetrics) {
 		[]string{"category", "context"},
 	)
 
+	rt.trafficSizeTotal = prometheus.NewCounterVec(
+		prometheus.CounterOpts{Name: "hsocks5_traffic_total", Help: "HSOCKS traffic size (byte)"},
+		[]string{"type"},
+	)
+
 	prometheus.MustRegister(
 		rt.connTotal,
 		rt.requestStatusTotal,
 		rt.cacheHitTotal,
 		rt.routineResultTotal,
 		rt.errorTotal,
+		rt.trafficSizeTotal,
 	)
 
 	metricSingleInstace = rt

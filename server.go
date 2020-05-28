@@ -2,7 +2,6 @@ package hsocks5
 
 import (
 	"fmt"
-	"io"
 	"net"
 	"net/http"
 	"net/url"
@@ -249,13 +248,22 @@ func (s *ProxyServer) handleConnect(w http.ResponseWriter, req *http.Request) {
 
 	if remote != nil && conn != nil {
 
-		errChans := make(chan error, 2)
+		ch := make(chan error, 2)
 
-		go pipe(remote, conn, errChans)
-		go pipe(conn, remote, errChans)
+		go func() {
+			w, err := CopyBuffer(remote, conn, make([]byte, 32*1024))
+			s.metric.trafficSizeTotal.WithLabelValues("upload").Add(float64(w))
+			ch <- err
+		}()
 
-		<-errChans
-		<-errChans
+		go func() {
+			w, err := CopyBuffer(conn, remote, make([]byte, 32*1024))
+			s.metric.trafficSizeTotal.WithLabelValues("download").Add(float64(w))
+			ch <- err
+		}()
+
+		<-ch
+		<-ch
 
 	}
 
@@ -347,7 +355,10 @@ func (s *ProxyServer) pipeResponse(from *http.Response, to http.ResponseWriter) 
 
 	defer from.Body.Close()
 
-	io.Copy(to, from.Body)
+	w, _ := Copy(to, from.Body)
+
+	s.metric.trafficSizeTotal.WithLabelValues("download").Add(float64(w))
+
 }
 
 // Start server
