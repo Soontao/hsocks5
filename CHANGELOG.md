@@ -1,4 +1,24 @@
 
+<a name="v0.1.0"></a>
+## [v0.1.0](https://github.com/Soontao/hsocks5/compare/v0.0.9...v0.1.0) (2020-05-28)
+
+### Code Refactoring
+
+* proxy backend
+
+### Common
+
+* **ci:** sonar cloud integration
+* **ci:** add lgtm scan
+* **release:** new version
+
+### Features
+
+* [#7](https://github.com/Soontao/hsocks5/issues/7) traffic size
+* dialer backend
+* [#6](https://github.com/Soontao/hsocks5/issues/6) disable http redirect
+
+
 <a name="v0.0.9"></a>
 ## [v0.0.9](https://github.com/Soontao/hsocks5/compare/v0.0.8...v0.0.9) (2020-05-23)
 
