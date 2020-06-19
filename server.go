@@ -2,6 +2,7 @@ package hsocks5
 
 import (
 	"fmt"
+	"github.com/Soontao/hsocks5/backend"
 	"net"
 	"net/http"
 	"net/url"
@@ -27,16 +28,22 @@ type ProxyServer struct {
 	option    *ProxyServerOption
 	dialer    proxy.Dialer
 	logger    *log.Entry
+	provider  backend.ProxyBackendProvider
 }
 
 // ProxyServerOption parameter
 type ProxyServerOption struct {
 	ListenAddr  string
 	RedisAddr   string
-	SocksAddr   string
 	ChinaSwitch bool
-	// provided dialer, will prefer use this programming dialer instead of socks5 service
+	// proxy provider by socks5 server
+	SocksAddr string
+	// proxy provided by programming dialer
+	// will prefer use this programming dialer instead of socks5 service
 	Dialer proxy.Dialer
+	// proxy provider
+	// will prefer(+2) use provider
+	Provider backend.ProxyBackendProvider
 }
 
 // NewProxyServer object
@@ -60,6 +67,7 @@ func NewProxyServer(option *ProxyServerOption) (*ProxyServer, error) {
 		metric:    NewProxyServerMetrics(),
 		kl:        NewKeyLock(),
 		logger:    logger,
+		provider:  option.Provider,
 	}, nil
 
 }
@@ -68,10 +76,19 @@ func NewProxyServer(option *ProxyServerOption) (*ProxyServer, error) {
 //
 // this function will provide the flexibility of dynamic proxy provider
 func (s *ProxyServer) getDialer() (rt proxy.Dialer, err error) {
-	rt = s.option.Dialer
-	if rt == nil {
-		rt, err = proxy.SOCKS5("tcp", s.option.SocksAddr, nil, proxy.Direct)
+
+	if s.provider != nil {
+		rt = s.provider.GetOne().GetDialer()
+		return
 	}
+
+	if s.option.Dialer != nil {
+		rt = s.option.Dialer
+		return
+	}
+
+	rt, err = proxy.SOCKS5("tcp", s.option.SocksAddr, nil, proxy.Direct)
+
 	return
 }
 

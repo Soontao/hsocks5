@@ -2,6 +2,7 @@ package hsocks5
 
 import (
 	"fmt"
+	"github.com/Soontao/hsocks5/backend"
 	"net"
 	"net/http"
 	"net/http/httptest"
@@ -14,6 +15,7 @@ import (
 )
 
 func TestNewProxyServer(t *testing.T) {
+
 	socksAddr := "127.0.0.1:50001"
 	httpProxyAddr := "127.0.0.1:50002"
 	httpProxyURL, err := url.Parse("http://127.0.0.1:50002")
@@ -82,6 +84,36 @@ func TestNewProxyServer(t *testing.T) {
 	assert.NoError(t, err)
 	resp, err = c.Do(req)
 	assert.NoError(t, err)
+	assert.Equal(t, 200, resp.StatusCode)
+
+	assert2 := assert.New(t)
+	assert2.NoError(err)
+
+	b1, err := backend.NewSocks5ProxyBackend(&backend.Socks5ProxyBackendOption{
+		HealthEndpoint: "https://github.com",
+		Addr:           socksAddr,
+		Name:           "mock-socks-server",
+	})
+
+	assert2.NoError(err)
+
+	backendProvider, err := backend.NewFastProxyBackendProvider(&backend.FastProxyBackendOption{
+		Backends: []backend.ProxyBackend{b1},
+	})
+
+	assert2.NoError(err)
+
+	p2, err := NewProxyServer(&ProxyServerOption{
+		ListenAddr:  httpProxyAddr,
+		SocksAddr:   socksAddr,
+		ChinaSwitch: true,
+		Provider:    backendProvider,
+	})
+
+	req = httptest.NewRequest("GET", "https://github.com", nil)
+	w = httptest.NewRecorder()
+	p2.handleProxyRequest(w, req)
+	resp = w.Result()
 	assert.Equal(t, 200, resp.StatusCode)
 
 }
