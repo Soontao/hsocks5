@@ -16,7 +16,7 @@ require (
 	github.com/stretchr/testify v1.5.1
 	github.com/urfave/cli v1.22.4
 	golang.org/x/net v0.0.0-20200513185701-a91f0712d120
-	golang.org/x/sys v0.0.0-20200515095857-1151b9dac4a9 // indirect
+	golang.org/x/sys v0.1.0 // indirect
 	golang.org/x/text v0.3.2 // indirect
 	gopkg.in/yaml.v2 v2.2.7 // indirect
 )
